@@ -6,6 +6,7 @@
 	import PromptPayQR from '$lib/components/PromptPayQR.svelte';
 	import QuickSummary from '$lib/components/QuickSummary.svelte';
 	import HelpDialog from '$lib/components/HelpDialog.svelte';
+	import History from '$lib/components/History.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '$lib/components/ui/dialog';
@@ -117,6 +118,9 @@
 
 				<!-- รายการอาหาร -->
 				<MenuItems />
+
+				<!-- ประวัติการแบ่งบิล -->
+				<History />
 			</div>
 
 			<!-- Right Column -->

@@ -40,3 +40,14 @@ export interface PromptPayInfo {
 	accountNumber?: string;
 	bankCode?: string;
 }
+
+export interface HistoryEntry {
+	id: string;
+	name: string; // ชื่อบิล เช่น "มื้อเที่ยง 12 มิ.ย. 2568"
+	createdAt: Date;
+	participants: Participant[];
+	menuItems: MenuItem[];
+	billSettings: BillSettings;
+	billSummary: BillSummary[];
+	totalAmount: number; // ยอดรวมทั้งหมด
+}

@@ -1,11 +1,12 @@
 // localStorage utilities สำหรับ "หารกัน"
-import type { Participant, MenuItem, BillSettings, PromptPayInfo } from './types.js';
+import type { Participant, MenuItem, BillSettings, PromptPayInfo, HistoryEntry } from './types.js';
 
 const STORAGE_KEYS = {
 	PARTICIPANTS: 'han-gun-participants',
 	MENU_ITEMS: 'han-gun-menu-items',
 	BILL_SETTINGS: 'han-gun-bill-settings',
-	PROMPTPAY_INFO: 'han-gun-promptpay-info'
+	PROMPTPAY_INFO: 'han-gun-promptpay-info',
+	HISTORY: 'han-gun-history'
 } as const;
 
 // Helper function to safely parse JSON
@@ -82,5 +83,42 @@ export function clearAllData(): void {
 		Object.values(STORAGE_KEYS).forEach(key => {
 			localStorage.removeItem(key);
 		});
+	}
+}
+
+// History
+export function saveHistoryEntry(entry: HistoryEntry): void {
+	if (typeof window !== 'undefined') {
+		const history = loadHistory();
+		// เพิ่มรายการใหม่ที่ด้านบน (เรียงจากใหม่ไปเก่า)
+		const updatedHistory = [entry, ...history];
+		// จำกัดประวัติไม่เกิน 50 รายการ
+		const limitedHistory = updatedHistory.slice(0, 50);
+		localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(limitedHistory));
+	}
+}
+
+export function loadHistory(): HistoryEntry[] {
+	if (typeof window === 'undefined') return [];
+	const data = localStorage.getItem(STORAGE_KEYS.HISTORY);
+	const history = safeJSONParse(data, []);
+	// แปลง createdAt จาก string กลับเป็น Date object
+	return history.map((entry: any) => ({
+		...entry,
+		createdAt: new Date(entry.createdAt)
+	}));
+}
+
+export function deleteHistoryEntry(id: string): void {
+	if (typeof window !== 'undefined') {
+		const history = loadHistory();
+		const updatedHistory = history.filter(entry => entry.id !== id);
+		localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(updatedHistory));
+	}
+}
+
+export function clearHistory(): void {
+	if (typeof window !== 'undefined') {
+		localStorage.removeItem(STORAGE_KEYS.HISTORY);
 	}
 }
