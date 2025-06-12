@@ -122,3 +122,33 @@ export function clearHistory(): void {
 		localStorage.removeItem(STORAGE_KEYS.HISTORY);
 	}
 }
+
+export function mergeHistory(newEntries: HistoryEntry[]): HistoryEntry[] {
+	if (typeof window === 'undefined') return newEntries;
+
+	const existingHistory = loadHistory();
+	const existingIds = new Set(existingHistory.map(entry => entry.id));
+
+	// กรองรายการที่ซ้ำกัน (ตาม ID)
+	const uniqueNewEntries = newEntries.filter(entry => !existingIds.has(entry.id));
+
+	// รวมและเรียงตามวันที่ (ใหม่ไปเก่า)
+	const mergedHistory = [...existingHistory, ...uniqueNewEntries]
+		.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+		.slice(0, 100); // จำกัดไม่เกิน 100 รายการ
+
+	// บันทึกกลับ localStorage
+	localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(mergedHistory));
+
+	return mergedHistory;
+}
+
+export function replaceHistory(newEntries: HistoryEntry[]): void {
+	if (typeof window !== 'undefined') {
+		const sortedEntries = newEntries
+			.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+			.slice(0, 100); // จำกัดไม่เกิน 100 รายการ
+
+		localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(sortedEntries));
+	}
+}

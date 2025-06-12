@@ -27,20 +27,26 @@
 		Calendar,
 		Users,
 		DollarSign,
-		Trash
+		Trash,
+		Download,
+		Upload,
+		FileDown,
+		FileUp
 	} from 'lucide-svelte';
-	import { history, saveBillToHistory, removeHistoryEntry, clearCurrentBill } from '$lib/stores.js';
+	import { history, saveBillToHistory, removeHistoryEntry, clearCurrentBill, importHistoryData } from '$lib/stores.js';
 	import { calculateBillSummary } from '$lib/bill-calculator.js';
-	import { participants, menuItems, billSettings } from '$lib/stores.js';
-	import { addToast } from '$lib/toast.js';
+	import { participants, menuItems, billSettings } from '$lib/stores.js';	import { addToast } from '$lib/toast.js';
 	import type { HistoryEntry, BillSummary } from '$lib/types.js';
 	import { clearHistory } from '$lib/localStorage.js';
-
+	import { exportHistory, importHistory, exportHistoryCSV, generateHistoryReport, downloadReport } from '$lib/export.js';
 	let isSaveDialogOpen = false;
 	let isViewDialogOpen = false;
+	let isImportDialogOpen = false;
 	let saveDialogName = '';
 	let selectedEntry: HistoryEntry | null = null;
 	let billSummary: BillSummary[] = [];
+	let fileInput: HTMLInputElement;
+	let importMode: 'merge' | 'replace' = 'merge';
 
 	// คำนวณยอดเงินของแต่ละคน
 	$: billSummary = calculateBillSummary($participants, $menuItems, $billSettings);
@@ -104,9 +110,86 @@
 			addToast('ลบประวัติทั้งหมดเรียบร้อยแล้ว', 'success');
 		}
 	}
-
 	function canSaveBill() {
 		return $participants.length > 0 && $menuItems.length > 0 && billSummary.some(p => p.grandTotal > 0);
+	}
+
+	function handleExportJSON() {
+		if ($history.length === 0) {
+			addToast('ไม่มีประวัติให้ส่งออก', 'error');
+			return;
+		}
+
+		try {
+			exportHistory($history);
+			addToast('ส่งออกประวัติเรียบร้อยแล้ว', 'success');
+		} catch (error) {
+			addToast('เกิดข้อผิดพลาดในการส่งออก', 'error');
+		}
+	}
+
+	function handleExportCSV() {
+		if ($history.length === 0) {
+			addToast('ไม่มีประวัติให้ส่งออก', 'error');
+			return;
+		}
+
+		try {
+			exportHistoryCSV($history);
+			addToast('ส่งออกประวัติ CSV เรียบร้อยแล้ว', 'success');
+		} catch (error) {
+			addToast('เกิดข้อผิดพลาดในการส่งออก CSV', 'error');
+		}
+	}
+
+	function handleExportReport() {
+		if ($history.length === 0) {
+			addToast('ไม่มีประวัติให้ส่งออก', 'error');
+			return;
+		}
+
+		try {
+			const report = generateHistoryReport($history);
+			downloadReport(report, `han-gun-history-report-${new Date().toISOString().split('T')[0]}.txt`);
+			addToast('ส่งออกรายงานเรียบร้อยแล้ว', 'success');
+		} catch (error) {
+			addToast('เกิดข้อผิดพลาดในการส่งออกรายงาน', 'error');
+		}
+	}
+
+	function handleImportFile() {
+		fileInput.click();
+	}
+
+	async function handleFileSelect(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+
+		if (!file) return;
+
+		try {
+			const importedHistory = await importHistory(file);
+
+			if (importedHistory.length === 0) {
+				addToast('ไฟล์ไม่มีข้อมูลประวัติ', 'error');
+				return;
+			}
+
+			// นำเข้าข้อมูล
+			importHistoryData(importedHistory, importMode === 'replace');
+
+			const message = importMode === 'replace'
+				? `แทนที่ประวัติเรียบร้อยแล้ว (${importedHistory.length} รายการ)`
+				: `นำเข้าประวัติเรียบร้อยแล้ว (${importedHistory.length} รายการใหม่)`;
+
+			addToast(message, 'success');
+			isImportDialogOpen = false;
+		} catch (error) {
+			addToast(error instanceof Error ? error.message : 'เกิดข้อผิดพลาดในการนำเข้า', 'error');
+		} finally {
+			// ล้างค่า input
+			input.value = '';
+		}
 	}
 </script>
 
@@ -116,8 +199,7 @@
 			<div class="flex items-center gap-2">
 				<History class="h-5 w-5" />
 				ประวัติการแบ่งบิล
-			</div>
-			<div class="flex gap-2">
+			</div>			<div class="flex gap-2">
 				<!-- ปุ่มบันทึกบิลปัจจุบัน -->
 				<Dialog bind:open={isSaveDialogOpen}>
 					<DialogTrigger disabled={!canSaveBill()}>
@@ -151,7 +233,106 @@
 							</div>
 						</div>
 					</DialogContent>
-				</Dialog>				<!-- ปุ่มล้างประวัติทั้งหมด -->
+				</Dialog>
+
+				<!-- ปุ่มส่งออก -->
+				{#if $history.length > 0}
+					<Dialog>
+						<DialogTrigger>
+							<Button variant="outline" size="sm">
+								<Download class="h-4 w-4" />
+								ส่งออก
+							</Button>
+						</DialogTrigger>
+						<DialogContent class="sm:max-w-md">
+							<DialogHeader>
+								<DialogTitle>ส่งออกประวัติ</DialogTitle>
+							</DialogHeader>
+							<div class="space-y-4">
+								<p class="text-sm text-muted-foreground">
+									เลือกรูปแบบการส่งออกประวัติการแบ่งบิล ({$history.length} รายการ)
+								</p>
+								<div class="space-y-2">
+									<Button class="w-full justify-start" onclick={handleExportJSON}>
+										<FileDown class="h-4 w-4" />
+										ส่งออกเป็น JSON (สำหรับนำเข้าใหม่)
+									</Button>
+									<Button variant="outline" class="w-full justify-start" onclick={handleExportCSV}>
+										<FileDown class="h-4 w-4" />
+										ส่งออกเป็น CSV (สำหรับ Excel)
+									</Button>
+									<Button variant="outline" class="w-full justify-start" onclick={handleExportReport}>
+										<FileText class="h-4 w-4" />
+										ส่งออกรายงานแบบละเอียด
+									</Button>
+								</div>
+							</div>
+						</DialogContent>
+					</Dialog>
+				{/if}
+
+				<!-- ปุ่มนำเข้า -->
+				<Dialog bind:open={isImportDialogOpen}>
+					<DialogTrigger>
+						<Button variant="outline" size="sm">
+							<Upload class="h-4 w-4" />
+							นำเข้า
+						</Button>
+					</DialogTrigger>
+					<DialogContent class="sm:max-w-md">
+						<DialogHeader>
+							<DialogTitle>นำเข้าประวัติ</DialogTitle>
+						</DialogHeader>
+						<div class="space-y-4">
+							<p class="text-sm text-muted-foreground">
+								นำเข้าประวัติการแบ่งบิลจากไฟล์ JSON ที่ส่งออกจากแอปนี้
+							</p>
+
+							<!-- เลือกโหมดการนำเข้า -->
+							<div class="space-y-2">
+								<Label>โหมดการนำเข้า</Label>
+								<div class="space-y-2">
+									<label class="flex items-center space-x-2">
+										<input
+											type="radio"
+											bind:group={importMode}
+											value="merge"
+											class="w-4 h-4 text-blue-600"
+										/>
+										<span class="text-sm">รวมกับประวัติเดิม (แนะนำ)</span>
+									</label>
+									<label class="flex items-center space-x-2">
+										<input
+											type="radio"
+											bind:group={importMode}
+											value="replace"
+											class="w-4 h-4 text-red-600"
+										/>
+										<span class="text-sm text-red-600">แทนที่ประวัติเดิมทั้งหมด</span>
+									</label>
+								</div>
+							</div>
+
+							{#if importMode === 'replace'}
+								<div class="text-sm text-destructive bg-destructive/10 p-2 rounded">
+									⚠️ ประวัติเดิมทั้งหมดจะถูกลบและแทนที่ด้วยข้อมูลใหม่
+								</div>
+							{/if}
+
+							<div class="flex justify-end gap-2">
+								<Button variant="outline" onclick={() => (isImportDialogOpen = false)}>
+									ยกเลิก
+								</Button>
+								<Button onclick={handleImportFile}>
+									<FileUp class="h-4 w-4" />
+									เลือกไฟล์
+								</Button>
+							</div>
+						</div>
+					</DialogContent>
+				</Dialog>
+
+				<!-- ปุ่มล้างประวัติทั้งหมด -->
 				{#if $history.length > 0}
 					<Button variant="outline" size="sm" onclick={clearAllHistory}>
 						<Trash class="h-4 w-4" />
@@ -340,7 +521,15 @@
 						</div>
 					</div>
 				</DialogContent>
-			</Dialog>
-		{/if}
+			</Dialog>		{/if}
 	</CardContent>
 </Card>
+
+<!-- Hidden file input for importing -->
+<input
+	type="file"
+	accept=".json"
+	bind:this={fileInput}
+	onchange={handleFileSelect}
+	style="display: none;"
+/>

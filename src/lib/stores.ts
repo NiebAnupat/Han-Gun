@@ -11,7 +11,9 @@ import {
 	savePromptPayInfo,
 	loadHistory,
 	saveHistoryEntry,
-	deleteHistoryEntry
+	deleteHistoryEntry,
+	mergeHistory,
+	replaceHistory
 } from './localStorage.js';
 
 // สร้าง stores พร้อมข้อมูลจาก localStorage
@@ -111,4 +113,14 @@ export function clearCurrentBill() {
 	participants.set([]);
 	menuItems.set([]);
 	billSettings.set({ vatPercentage: 7, serviceChargePercentage: 10, discount: null });
+}
+
+export function importHistoryData(newEntries: HistoryEntry[], replaceExisting: boolean = false) {
+	if (replaceExisting) {
+		replaceHistory(newEntries);
+		history.set(newEntries);
+	} else {
+		const mergedEntries = mergeHistory(newEntries);
+		history.set(mergedEntries);
+	}
 }
