@@ -276,9 +276,8 @@
 				{#if $history.length > 0}
 					<Dialog>
 						<DialogTrigger>
-							<Tooltip text="ส่งออกประวัติเป็นไฟล์ JSON, CSV หรือรายงาน">
-								<Button variant="outline" size="sm" class="touch-target">
-									<Download class="h-4 w-4" />
+							<Tooltip text="ส่งออกประวัติเป็นไฟล์ JSON, CSV หรือรายงาน">								<Button variant="outline" size="sm" class="touch-target">
+									<Upload class="h-4 w-4" />
 									<span class="xs:inline hidden">ส่งออก</span>
 								</Button>
 							</Tooltip>
@@ -291,17 +290,15 @@
 								<p class="text-muted-foreground text-xs sm:text-sm">
 									เลือกรูปแบบการส่งออกประวัติการแบ่งบิล ({$history.length} รายการ)
 								</p>
-								<div class="space-y-2">
-									<Button class="touch-target w-full justify-start" onclick={handleExportJSON}>
-										<FileDown class="h-4 w-4" />
+								<div class="space-y-2">									<Button class="touch-target w-full justify-start" onclick={handleExportJSON}>
+										<Upload class="h-4 w-4" />
 										<span class="text-sm">ส่งออกเป็น JSON (สำหรับนำเข้าใหม่)</span>
-									</Button>
-									<Button
+									</Button>									<Button
 										variant="outline"
 										class="touch-target w-full justify-start"
 										onclick={handleExportCSV}
 									>
-										<FileDown class="h-4 w-4" />
+										<Upload class="h-4 w-4" />
 										<span class="text-sm">ส่งออกเป็น CSV (สำหรับ Excel)</span>
 									</Button>
 									<Button
@@ -319,13 +316,12 @@
 				{/if}
 				<!-- ปุ่มนำเข้า -->
 				<Dialog bind:open={isImportDialogOpen}>
-					<DialogTrigger>
-						<Tooltip text="นำเข้าประวัติจากไฟล์ JSON">
-							<Button variant="outline" size="sm" class="touch-target">
-								<Upload class="h-4 w-4" />
-								<span class="xs:inline hidden">นำเข้า</span>
-							</Button>
-						</Tooltip>
+					<DialogTrigger>							<Tooltip text="นำเข้าประวัติจากไฟล์ JSON">
+								<Button variant="outline" size="sm" class="touch-target">
+									<Download class="h-4 w-4" />
+									<span class="xs:inline hidden">นำเข้า</span>
+								</Button>
+							</Tooltip>
 					</DialogTrigger>
 					<DialogContent class="mx-auto w-[95vw] max-w-md">
 						<DialogHeader>
@@ -374,9 +370,8 @@
 									class="touch-target"
 								>
 									ยกเลิก
-								</Button>
-								<Button onclick={handleImportFile} class="touch-target">
-									<FileUp class="h-4 w-4" />
+								</Button>								<Button onclick={handleImportFile} class="touch-target">
+									<Download class="h-4 w-4" />
 									เลือกไฟล์
 								</Button>
 							</div>
@@ -660,9 +655,7 @@
 									</div>
 								{/each}
 							</div>
-						</div>
-
-						<!-- การตั้งค่าบิล -->
+						</div>						<!-- การตั้งค่าบิล -->
 						<div>
 							<h3 class="mb-3 text-sm font-medium sm:text-base">การตั้งค่าบิล</h3>
 							<div class="space-y-2 text-xs sm:text-sm">
@@ -673,14 +666,29 @@
 								<div class="flex justify-between">
 									<span>VAT:</span>
 									<span>{selectedEntry.billSettings.vatPercentage}%</span>
-								</div>
-								{#if selectedEntry.billSettings.discount}
+								</div>								<!-- แสดงส่วนลดแบบใหม่ (หลายรายการ) -->
+								{#if selectedEntry.billSettings.discounts && selectedEntry.billSettings.discounts.length > 0}
+									<div class="space-y-1">
+										<span class="font-medium">ส่วนลด:</span>
+										{#each selectedEntry.billSettings.discounts as discount}
+											<div class="flex justify-between pl-4">
+												<span class="text-muted-foreground">{discount.name}:</span>
+												<span>
+													{discount.type === 'percentage'
+														? `${discount.value}%`
+														: formatPrice(discount.value)}
+												</span>
+											</div>
+										{/each}
+									</div>
+								{:else if (selectedEntry.billSettings as any).discount}
+									<!-- Fallback สำหรับข้อมูลเก่าที่อาจจะยังมี discount แบบเดียว -->
 									<div class="flex justify-between">
 										<span>ส่วนลด:</span>
 										<span>
-											{selectedEntry.billSettings.discount.type === 'percentage'
-												? `${selectedEntry.billSettings.discount.value}%`
-												: formatPrice(selectedEntry.billSettings.discount.value)}
+											{(selectedEntry.billSettings as any).discount.type === 'percentage'
+												? `${(selectedEntry.billSettings as any).discount.value}%`
+												: formatPrice((selectedEntry.billSettings as any).discount.value)}
 										</span>
 									</div>
 								{/if}
