@@ -10,6 +10,7 @@
 		DialogTitle,
 		DialogTrigger
 	} from '$lib/components/ui/dialog';	import { Badge } from '$lib/components/ui/badge';
+	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { QrCode, Copy, Settings, Smartphone, CreditCard, Download, Building2 } from 'lucide-svelte';
 	import { participants, menuItems, billSettings, promptPayInfo } from '$lib/stores.js';
 	import { calculateBillSummary } from '$lib/bill-calculator.js';
@@ -230,67 +231,71 @@
 	}
 </script>
 
-<Card class="w-full">
-	<CardHeader>		<CardTitle class="flex items-center justify-between">
-			<div class="flex items-center gap-2">
+<Card class="w-full">	<CardHeader>		<CardTitle class="flex items-center justify-between">
+			<div class="flex items-center gap-2 min-w-0">
 				{#if paymentMethod === 'promptpay'}
-					<QrCode class="h-5 w-5" />
-					PromptPay QR Code
+					<QrCode class="h-5 w-5 flex-shrink-0" />
+					<span class="truncate text-sm sm:text-base">PromptPay QR Code</span>
 				{:else}
-					<Building2 class="h-5 w-5" />
-					การโอนเงินผ่านธนาคาร
+					<Building2 class="h-5 w-5 flex-shrink-0" />
+					<span class="truncate text-sm sm:text-base">การโอนเงินผ่านธนาคาร</span>
 				{/if}
-			</div>
-			<Dialog bind:open={isSettingsOpen}>
+			</div>			<Dialog bind:open={isSettingsOpen}>
 				<DialogTrigger>
-					<Button variant="outline" size="sm">
-						<Settings class="h-4 w-4" />
-						ตั้งค่า
-					</Button>
+					<Tooltip text="ตั้งค่าข้อมูล PromptPay และธนาคาร">
+						<Button variant="outline" size="sm" class="flex-shrink-0">
+							<Settings class="h-4 w-4 sm:mr-1" />
+							<span class="hidden sm:inline">ตั้งค่า</span>
+						</Button>
+					</Tooltip>
 				</DialogTrigger>
-				<DialogContent class="sm:max-w-md">
+				<DialogContent class="w-[95vw] max-w-md mx-auto">
 					<DialogHeader>
-						<DialogTitle>ตั้งค่าการชำระเงิน</DialogTitle>
+						<DialogTitle class="text-base">ตั้งค่าการชำระเงิน</DialogTitle>
 					</DialogHeader>					<div class="space-y-4">
 						<div class="space-y-2">
-							<Label for="phone-number">เบอร์โทรศัพท์ PromptPay</Label>
+							<Label for="phone-number" class="text-sm">เบอร์โทรศัพท์ PromptPay</Label>
 							<Input
 								id="phone-number"
 								bind:value={settingsForm.phoneNumber}
 								placeholder="0812345678"
 								maxlength={10}
+								class="text-sm"
 							/>
 						</div>
 						<div class="space-y-2">
-							<Label for="bank-name">ชื่อธนาคาร</Label>
+							<Label for="bank-name" class="text-sm">ชื่อธนาคาร</Label>
 							<Input
 								id="bank-name"
 								bind:value={settingsForm.bankName}
 								placeholder="ธนาคารกสิกรไทย"
+								class="text-sm"
 							/>
 						</div>
 						<div class="space-y-2">
-							<Label for="account-name">ชื่อบัญชี</Label>
+							<Label for="account-name" class="text-sm">ชื่อบัญชี</Label>
 							<Input
 								id="account-name"
 								bind:value={settingsForm.accountName}
 								placeholder="นาย สมชาย ใจดี"
+								class="text-sm"
 							/>
 						</div>
 						<div class="space-y-2">
-							<Label for="account-number">เลขที่บัญชี</Label>
+							<Label for="account-number" class="text-sm">เลขที่บัญชี</Label>
 							<Input
 								id="account-number"
 								bind:value={settingsForm.accountNumber}
 								placeholder="123-4-56789-0"
+								class="text-sm"
 							/>
 						</div>
 						<div class="text-muted-foreground text-xs">
 							กรอกข้อมูล PromptPay สำหรับ QR Code หรือข้อมูลธนาคารสำหรับการโอนเงิน
 						</div>
-						<div class="flex justify-end gap-2">
-							<Button variant="outline" onclick={() => (isSettingsOpen = false)}>ยกเลิก</Button>
-							<Button onclick={savePromptPaySettings}>บันทึก</Button>
+						<div class="flex flex-col sm:flex-row justify-end gap-2">
+							<Button variant="outline" onclick={() => (isSettingsOpen = false)} class="w-full sm:w-auto">ยกเลิก</Button>
+							<Button onclick={savePromptPaySettings} class="w-full sm:w-auto">บันทึก</Button>
 						</div>
 					</div>
 				</DialogContent>
@@ -298,30 +303,31 @@
 		</CardTitle>
 	</CardHeader>	<CardContent>
 		{#if !hasPaymentInfo()}
-			<div class="text-muted-foreground py-8 text-center">
-				<Smartphone class="mx-auto mb-2 h-12 w-12 opacity-50" />
-				<p>ยังไม่ได้ตั้งค่าข้อมูลการชำระเงิน</p>
-				<p class="mb-4 text-sm">กรุณาตั้งค่าข้อมูล PromptPay หรือบัญชีธนาคาร</p>
+			<div class="text-muted-foreground py-6 sm:py-8 text-center">
+				<Smartphone class="mx-auto mb-2 h-10 w-10 sm:h-12 sm:w-12 opacity-50" />
+				<p class="text-sm sm:text-base">ยังไม่ได้ตั้งค่าข้อมูลการชำระเงิน</p>
+				<p class="mb-4 text-xs sm:text-sm">กรุณาตั้งค่าข้อมูล PromptPay หรือบัญชีธนาคาร</p>
 				<Button variant="outline" onclick={() => (isSettingsOpen = true)}>
-					<Settings class="h-4 w-4" />
+					<Settings class="h-4 w-4 mr-2" />
 					ตั้งค่าตอนนี้
 				</Button>
 			</div>
 		{:else if billSummary.length === 0}
-			<div class="text-muted-foreground py-8 text-center">
-				<QrCode class="mx-auto mb-2 h-12 w-12 opacity-50" />
-				<p>ยังไม่มีข้อมูลสำหรับสร้างการชำระเงิน</p>
-				<p class="text-sm">เพิ่มผู้เข้าร่วมและรายการอาหารก่อน</p>
+			<div class="text-muted-foreground py-6 sm:py-8 text-center">
+				<QrCode class="mx-auto mb-2 h-10 w-10 sm:h-12 sm:w-12 opacity-50" />
+				<p class="text-sm sm:text-base">ยังไม่มีข้อมูลสำหรับสร้างการชำระเงิน</p>
+				<p class="text-xs sm:text-sm">เพิ่มผู้เข้าร่วมและรายการอาหารก่อน</p>
 			</div>
 		{:else}
 			<div class="space-y-4">
 				<!-- Payment Method Selection -->
-				<div class="flex justify-center gap-2 mb-4">
+				<div class="flex flex-col sm:flex-row justify-center gap-2 mb-4">
 					<Button
 						variant={paymentMethod === 'promptpay' ? 'default' : 'outline'}
 						size="sm"
 						onclick={() => (paymentMethod = 'promptpay')}
 						disabled={!hasPromptPayInfo()}
+						class="w-full sm:w-auto"
 					>
 						<QrCode class="h-4 w-4 mr-2" />
 						QR PromptPay
@@ -331,55 +337,67 @@
 						size="sm"
 						onclick={() => (paymentMethod = 'bank')}
 						disabled={!hasBankInfo()}
+						class="w-full sm:w-auto"
 					>
 						<Building2 class="h-4 w-4 mr-2" />
 						โอนผ่านธนาคาร
 					</Button>
-				</div>				<!-- รายการแต่ละคน -->
+				</div>
+
+				<!-- รายการแต่ละคน -->
 				<div class="space-y-3">
 					{#each billSummary as person (person.participantId)}
 						{#if person.grandTotal > 0}
-							<div class="flex items-center justify-between rounded-lg border p-3">
-								<div class="flex items-center gap-3">
-									<div>
-										<div class="font-medium">{person.participantName}</div>
-										<div class="text-muted-foreground text-sm">
+							<div class="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border p-3 gap-3">
+								<div class="flex items-center gap-3 min-w-0">
+									<div class="min-w-0 flex-1">
+										<div class="font-medium text-sm sm:text-base truncate">{person.participantName}</div>
+										<div class="text-muted-foreground text-xs sm:text-sm">
 											{formatPrice(person.grandTotal)}
 										</div>
 									</div>
-								</div>
-								<div class="flex gap-2">
-									<Button size="sm" variant="outline" onclick={() => copyAmount(person.grandTotal)}>
-										<Copy class="h-3 w-3" />
-										คัดลอก
-									</Button>
+								</div>								<div class="flex gap-2 justify-end sm:justify-start">
+									<Tooltip text="คัดลอกจำนวนเงิน">
+										<Button size="sm" variant="outline" onclick={() => copyAmount(person.grandTotal)} class="flex-1 sm:flex-none">
+											<Copy class="h-3 w-3 mr-1" />
+											<span class="text-xs sm:text-sm">คัดลอก</span>
+										</Button>
+									</Tooltip>
 									{#if paymentMethod === 'promptpay'}
-										<Button
-											size="sm"
-											onclick={() => showQRCode(person.participantId, person.grandTotal)}
-										>
-											<QrCode class="h-3 w-3" />
-											QR Code
-										</Button>
+										<Tooltip text="แสดง QR Code สำหรับโอนเงิน">
+											<Button
+												size="sm"
+												onclick={() => showQRCode(person.participantId, person.grandTotal)}
+												class="flex-1 sm:flex-none"
+											>
+												<QrCode class="h-3 w-3 mr-1" />
+												<span class="text-xs sm:text-sm">QR</span>
+											</Button>
+										</Tooltip>
 									{:else}
-										<Button
-											size="sm"
-											onclick={() => showBankDetails(person.participantId, person.grandTotal)}
-										>
-											<Building2 class="h-3 w-3" />
-											ข้อมูลโอน
-										</Button>
+										<Tooltip text="แสดงข้อมูลธนาคารสำหรับโอนเงิน">
+											<Button
+												size="sm"
+												onclick={() => showBankDetails(person.participantId, person.grandTotal)}
+												class="flex-1 sm:flex-none"
+											>
+												<Building2 class="h-3 w-3 mr-1" />
+												<span class="text-xs sm:text-sm">ข้อมูลโอน</span>
+											</Button>
+										</Tooltip>
 									{/if}
 								</div>
 							</div>
 						{/if}
 					{/each}
-				</div>				<!-- แสดง QR Code หรือข้อมูลธนาคาร ใน Dialog -->
+				</div>
+
+				<!-- แสดง QR Code หรือข้อมูลธนาคาร ใน Dialog -->
 				{#if qrCodePayload}
 					<Dialog open={!!qrCodePayload} onOpenChange={(open) => !open && (qrCodePayload = '')}>
-						<DialogContent class="sm:max-w-md">
+						<DialogContent class="w-[95vw] max-w-md mx-auto">
 							<DialogHeader>
-								<DialogTitle>
+								<DialogTitle class="text-base">
 									{qrCodePayload === 'bank-details' ? 'ข้อมูลการโอนเงิน' : 'QR Code'}สำหรับ
 									{billSummary.find((p) => p.participantId === selectedPersonId)?.participantName}
 								</DialogTitle>
@@ -401,34 +419,37 @@
 											<div class="flex justify-between items-center">
 												<span class="text-muted-foreground">ชื่อบัญชี:</span>
 												<span class="font-medium">{$promptPayInfo.accountName}</span>
-											</div>
-											<div class="flex justify-between items-center">
+											</div>											<div class="flex justify-between items-center">
 												<span class="text-muted-foreground">เลขที่บัญชี:</span>
 												<div class="flex items-center gap-2">
 													<span class="font-medium">{$promptPayInfo.accountNumber}</span>
-													<Button
-														size="sm"
-														variant="ghost"
-														onclick={() => {
-															navigator.clipboard.writeText($promptPayInfo.accountNumber || '');
-															addToast('คัดลอกเลขบัญชีสำเร็จ', 'success');
-														}}
-													>
-														<Copy class="h-3 w-3" />
-													</Button>
+													<Tooltip text="คัดลอกเลขที่บัญชี">
+														<Button
+															size="sm"
+															variant="ghost"
+															onclick={() => {
+																navigator.clipboard.writeText($promptPayInfo.accountNumber || '');
+																addToast('คัดลอกเลขบัญชีสำเร็จ', 'success');
+															}}
+														>
+															<Copy class="h-3 w-3" />
+														</Button>
+													</Tooltip>
 												</div>
 											</div>
 											<div class="flex justify-between items-center">
 												<span class="text-muted-foreground">จำนวนเงิน:</span>
 												<div class="flex items-center gap-2">
 													<span class="font-medium">{selectedPersonAmount.toFixed(2)} บาท</span>
-													<Button
-														size="sm"
-														variant="ghost"
-														onclick={() => copyAmount(selectedPersonAmount)}
-													>
-														<Copy class="h-3 w-3" />
-													</Button>
+													<Tooltip text="คัดลอกจำนวนเงิน">
+														<Button
+															size="sm"
+															variant="ghost"
+															onclick={() => copyAmount(selectedPersonAmount)}
+														>
+															<Copy class="h-3 w-3" />
+														</Button>
+													</Tooltip>
 												</div>
 											</div>
 										</div>
@@ -475,17 +496,20 @@
 												โอนไปยัง: {$promptPayInfo.phoneNumber}
 											</div>
 										{/if}
-									</div>
-									<!-- ปุ่มคัดลอกจำนวนเงิน -->
+									</div>									<!-- ปุ่มคัดลอกจำนวนเงิน -->
 									<div class="flex justify-center gap-2">
-										<Button variant="outline" onclick={() => copyAmount(selectedPersonAmount)}>
-											<Copy class="h-4 w-4" />
-											คัดลอกจำนวนเงิน
-										</Button>
-										<Button variant="outline" onclick={downloadQRCode}>
-											<Download class="h-4 w-4" />
-											ดาวน์โหลด QR
-										</Button>
+										<Tooltip text="คัดลอกจำนวนเงินที่ต้องโอน">
+											<Button variant="outline" onclick={() => copyAmount(selectedPersonAmount)}>
+												<Copy class="h-4 w-4" />
+												คัดลอกจำนวนเงิน
+											</Button>
+										</Tooltip>
+										<Tooltip text="ดาวน์โหลด QR Code เป็นรูปภาพ">
+											<Button variant="outline" onclick={downloadQRCode}>
+												<Download class="h-4 w-4" />
+												ดาวน์โหลด QR
+											</Button>
+										</Tooltip>
 										<Button onclick={() => (qrCodePayload = '')}>ปิด</Button>
 									</div>
 								{/if}

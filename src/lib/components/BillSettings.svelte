@@ -1,12 +1,12 @@
-<script lang="ts">
-	import { Button } from '$lib/components/ui/button';
+<script lang="ts">	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '$lib/components/ui/dialog';
-	import { Separator } from '$lib/components/ui/separator';	import { Percent, DollarSign, Settings, Trash2 } from 'lucide-svelte';
+	import { Separator } from '$lib/components/ui/separator';
+	import Tooltip from '$lib/components/Tooltip.svelte';import { Percent, DollarSign, Settings, Trash2 } from 'lucide-svelte';
 	import { participants, billSettings } from '$lib/stores.js';
 	import { addToast } from '$lib/toast.js';
 	import type { Discount } from '$lib/types.js';	let isDiscountDialogOpen = false;
@@ -121,26 +121,27 @@
 	}
 </script>
 
-<Card class="w-full">
-	<CardHeader>
+<Card class="w-full">	<CardHeader>
 		<CardTitle class="flex items-center justify-between">
-			<div class="flex items-center gap-2">
-				<Settings class="h-5 w-5" />
-				การตั้งค่าบิล
+			<div class="flex items-center gap-2 min-w-0">
+				<Settings class="h-5 w-5 flex-shrink-0" />
+				<span class="truncate">การตั้งค่าบิล</span>
 			</div>			<Dialog bind:open={isSettingsDialogOpen}>
 				<DialogTrigger>
-					<Button variant="outline" size="sm">
-						<Settings class="h-4 w-4" />
-						ตั้งค่า
-					</Button>
+					<Tooltip text="ตั้งค่า VAT และค่าบริการ">
+						<Button variant="outline" size="sm" class="flex-shrink-0">
+							<Settings class="h-4 w-4 sm:mr-1" />
+							<span class="hidden sm:inline">ตั้งค่า</span>
+						</Button>
+					</Tooltip>
 				</DialogTrigger>
-				<DialogContent class="sm:max-w-md">
+				<DialogContent class="w-[95vw] max-w-md mx-auto">
 					<DialogHeader>
-						<DialogTitle>ตั้งค่าการคำนวณ</DialogTitle>
+						<DialogTitle class="text-base">ตั้งค่าการคำนวณ</DialogTitle>
 					</DialogHeader>
 					<div class="space-y-4">
 						<div class="space-y-2">
-							<Label for="vat-percentage">VAT (%)</Label>
+							<Label for="vat-percentage" class="text-sm">VAT (%)</Label>
 							<Input
 								id="vat-percentage"
 								type="number"
@@ -148,10 +149,11 @@
 								max="100"
 								step="0.01"
 								bind:value={settingsForm.vatPercentage}
+								class="text-sm"
 							/>
 						</div>
 						<div class="space-y-2">
-							<Label for="service-percentage">ค่าบริการ (%)</Label>
+							<Label for="service-percentage" class="text-sm">ค่าบริการ (%)</Label>
 							<Input
 								id="service-percentage"
 								type="number"
@@ -159,13 +161,14 @@
 								max="100"
 								step="0.01"
 								bind:value={settingsForm.serviceChargePercentage}
+								class="text-sm"
 							/>
 						</div>
-						<div class="flex justify-end gap-2">
-							<Button variant="outline" onclick={() => isSettingsDialogOpen = false}>
+						<div class="flex flex-col sm:flex-row justify-end gap-2">
+							<Button variant="outline" onclick={() => isSettingsDialogOpen = false} class="w-full sm:w-auto">
 								ยกเลิก
 							</Button>
-							<Button onclick={handleSettingsSubmit}>
+							<Button onclick={handleSettingsSubmit} class="w-full sm:w-auto">
 								บันทึก
 							</Button>
 						</div>
@@ -173,17 +176,16 @@
 				</DialogContent>
 			</Dialog>
 		</CardTitle>
-	</CardHeader>
-	<CardContent class="space-y-4">
+	</CardHeader>	<CardContent class="space-y-4">
 		<!-- แสดงการตั้งค่าปัจจุบัน -->
-		<div class="grid grid-cols-2 gap-4 text-sm">
-			<div class="flex justify-between">
+		<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+			<div class="flex justify-between p-2 rounded bg-muted/30">
 				<span class="text-muted-foreground">VAT:</span>
-				<span>{$billSettings.vatPercentage}%</span>
+				<span class="font-medium">{$billSettings.vatPercentage}%</span>
 			</div>
-			<div class="flex justify-between">
+			<div class="flex justify-between p-2 rounded bg-muted/30">
 				<span class="text-muted-foreground">ค่าบริการ:</span>
-				<span>{$billSettings.serviceChargePercentage}%</span>
+				<span class="font-medium">{$billSettings.serviceChargePercentage}%</span>
 			</div>
 		</div>
 
@@ -192,43 +194,44 @@
 		<!-- จัดการส่วนลด -->
 		<div class="space-y-3">
 			<div class="flex items-center justify-between">
-				<h4 class="font-medium">ส่วนลด</h4>				<Dialog bind:open={isDiscountDialogOpen}>
+				<h4 class="font-medium text-sm sm:text-base">ส่วนลด</h4>				<Dialog bind:open={isDiscountDialogOpen}>
 					<DialogTrigger>
-						<Button
-							variant="outline"
-							size="sm"
-							onclick={openDiscountDialog}
-							disabled={$participants.length === 0}
-						>
-							<Percent class="h-4 w-4" />
-							{$billSettings.discount ? 'แก้ไข' : 'เพิ่ม'}ส่วนลด
-						</Button>
+						<Tooltip text={$billSettings.discount ? 'แก้ไขส่วนลด' : 'เพิ่มส่วนลด'} disabled={$participants.length === 0}>
+							<Button
+								variant="outline"
+								size="sm"
+								onclick={openDiscountDialog}
+								disabled={$participants.length === 0}
+								class="flex-shrink-0"
+							>
+								<Percent class="h-4 w-4 sm:mr-1" />
+								<span class="hidden sm:inline">{$billSettings.discount ? 'แก้ไข' : 'เพิ่ม'}ส่วนลด</span>
+							</Button>
+						</Tooltip>
 					</DialogTrigger>
-					<DialogContent class="sm:max-w-md">
+					<DialogContent class="w-[95vw] max-w-md mx-auto">
 						<DialogHeader>
-							<DialogTitle>จัดการส่วนลด</DialogTitle>
+							<DialogTitle class="text-base">จัดการส่วนลด</DialogTitle>
 						</DialogHeader>
 						<div class="space-y-4">
 							<!-- ประเภทส่วนลด -->
 							<div class="space-y-2">
-								<Label>ประเภทส่วนลด</Label>
-								<div class="flex gap-2">
+								<Label class="text-sm">ประเภทส่วนลด</Label>
+								<div class="grid grid-cols-2 gap-2">
 									<Button
 										variant={discountForm.type === 'percentage' ? 'default' : 'outline'}
 										size="sm"
 										onclick={() => discountForm.type = 'percentage'}
-										class="flex-1"
 									>
-										<Percent class="h-4 w-4" />
+										<Percent class="h-4 w-4 mr-1" />
 										เปอร์เซ็นต์
 									</Button>
 									<Button
 										variant={discountForm.type === 'fixed' ? 'default' : 'outline'}
 										size="sm"
 										onclick={() => discountForm.type = 'fixed'}
-										class="flex-1"
 									>
-										<DollarSign class="h-4 w-4" />
+										<DollarSign class="h-4 w-4 mr-1" />
 										จำนวนเงิน
 									</Button>
 								</div>
@@ -236,7 +239,7 @@
 
 							<!-- จำนวนส่วนลด -->
 							<div class="space-y-2">
-								<Label for="discount-value">
+								<Label for="discount-value" class="text-sm">
 									{discountForm.type === 'percentage' ? 'เปอร์เซ็นต์ส่วนลด' : 'จำนวนเงินส่วนลด (บาท)'}
 								</Label>
 								<Input
@@ -247,14 +250,15 @@
 									step={discountForm.type === 'percentage' ? '0.01' : '1'}
 									bind:value={discountForm.value}
 									placeholder={discountForm.type === 'percentage' ? '0.00' : '0'}
+									class="text-sm"
 								/>
 							</div>
 
 							<!-- เลือกผู้ได้รับส่วนลด -->
 							<div class="space-y-2">
-								<Label>ผู้ที่ได้รับส่วนลด</Label>
+								<Label class="text-sm">ผู้ที่ได้รับส่วนลด</Label>
 								{#if $participants.length > 0}
-									<div class="grid gap-2 max-h-40 overflow-y-auto">
+									<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border rounded-md">
 										{#each $participants as participant (participant.id)}
 											<div class="flex items-center space-x-2">
 												<Checkbox
@@ -264,7 +268,7 @@
 												/>
 												<Label
 													for={`discount-${participant.id}`}
-													class="text-sm font-normal cursor-pointer"
+													class="text-sm font-normal cursor-pointer truncate"
 												>
 													{participant.name}
 												</Label>
@@ -276,13 +280,14 @@
 								{/if}
 							</div>
 
-							<div class="flex justify-end gap-2">
-								<Button variant="outline" onclick={() => isDiscountDialogOpen = false}>
+							<div class="flex flex-col sm:flex-row justify-end gap-2">
+								<Button variant="outline" onclick={() => isDiscountDialogOpen = false} class="w-full sm:w-auto">
 									ยกเลิก
 								</Button>
 								<Button
 									onclick={handleDiscountSubmit}
 									disabled={discountForm.value <= 0 || discountForm.selectedParticipants.length === 0}
+									class="w-full sm:w-auto"
 								>
 									บันทึก
 								</Button>
@@ -295,10 +300,10 @@
 			<!-- แสดงส่วนลดปัจจุบัน -->
 			{#if $billSettings.discount}
 				<div class="rounded-lg border p-3 bg-muted/50">
-					<div class="flex items-center justify-between">
-						<div class="space-y-1">
+					<div class="flex items-start justify-between gap-3">
+						<div class="space-y-1 min-w-0 flex-1">
 							<div class="flex items-center gap-2">
-								<Badge variant="secondary">
+								<Badge variant="secondary" class="text-xs">
 									{#if $billSettings.discount.type === 'percentage'}
 										{$billSettings.discount.value}% ส่วนลด
 									{:else}
@@ -306,19 +311,20 @@
 									{/if}
 								</Badge>
 							</div>
-							<div class="text-sm text-muted-foreground">
+							<div class="text-xs sm:text-sm text-muted-foreground">
 								สำหรับ: {getDiscountParticipantNames($billSettings.discount.participants)}
 								({$billSettings.discount.participants.length} คน)
 							</div>
-						</div>
-						<Button
-							size="sm"
-							variant="ghost"
-							onclick={removeDiscount}
-							class="h-8 w-8 p-0 text-destructive hover:text-destructive"
-						>
-							<Trash2 class="h-3 w-3" />
-						</Button>
+						</div>						<Tooltip text="ลบส่วนลด">
+							<Button
+								size="sm"
+								variant="ghost"
+								onclick={removeDiscount}
+								class="h-7 w-7 p-0 text-destructive hover:text-destructive flex-shrink-0"
+							>
+								<Trash2 class="h-3 w-3" />
+							</Button>
+						</Tooltip>
 					</div>
 				</div>
 			{:else}

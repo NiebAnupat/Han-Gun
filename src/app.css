@@ -119,3 +119,66 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile-first responsive utilities */
+@layer utilities {
+  .xs\:flex-row {
+    @media (min-width: 360px) {
+      flex-direction: row;
+    }
+  }
+
+  .xs\:items-center {
+    @media (min-width: 360px) {
+      align-items: center;
+    }
+  }
+
+  .xs\:gap-4 {
+    @media (min-width: 360px) {
+      gap: 1rem;
+    }
+  }
+
+  /* Safe area padding for mobile devices */
+  .safe-area-padding {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Smooth transitions */
+  .transition-all {
+    transition: all 0.2s ease-in-out;
+  }
+
+  /* Better touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Prevent text selection on touch devices */
+  .select-none-touch {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
+
+/* Improve form input appearance on mobile */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/* Better focus styles for accessibility */
+:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}

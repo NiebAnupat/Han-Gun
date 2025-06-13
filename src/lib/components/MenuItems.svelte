@@ -1,11 +1,11 @@
-<script lang="ts">
-	import { Button } from '$lib/components/ui/button';
+<script lang="ts">	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '$lib/components/ui/dialog';	import { PlusCircle, Trash2, Edit2, UtensilsCrossed } from 'lucide-svelte';
+	import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '$lib/components/ui/dialog';
+	import Tooltip from '$lib/components/Tooltip.svelte';import { PlusCircle, Trash2, Edit2, UtensilsCrossed } from 'lucide-svelte';
 	import { participants, menuItems, addMenuItem, removeMenuItem, updateMenuItem } from '$lib/stores.js';
 	import { addToast } from '$lib/toast.js';
 	import type { MenuItem } from '$lib/types.js';	let isDialogOpen = false;
@@ -105,39 +105,41 @@
 	}
 </script>
 
-<Card class="w-full">
-	<CardHeader>
+<Card class="w-full">	<CardHeader>
 		<CardTitle class="flex items-center justify-between">
-			<div class="flex items-center gap-2">
-				<UtensilsCrossed class="h-5 w-5" />
-				รายการอาหาร
+			<div class="flex items-center gap-2 min-w-0">
+				<UtensilsCrossed class="h-5 w-5 flex-shrink-0" />
+				<span class="truncate">รายการอาหาร</span>
 			</div>			<Dialog bind:open={isDialogOpen}>
 				<DialogTrigger>
-					<Button onclick={openAddDialog} disabled={$participants.length === 0}>
-						<PlusCircle class="h-4 w-4" />
-						เพิ่มเมนู
-					</Button>
+					<Tooltip text="เพิ่มรายการอาหารใหม่" disabled={$participants.length === 0}>
+						<Button onclick={openAddDialog} disabled={$participants.length === 0} size="sm" class="flex-shrink-0">
+							<PlusCircle class="h-4 w-4 sm:mr-2" />
+							<span class="hidden sm:inline">เพิ่มเมนู</span>
+						</Button>
+					</Tooltip>
 				</DialogTrigger>
-				<DialogContent class="sm:max-w-md">
+				<DialogContent class="w-[95vw] max-w-md mx-auto">
 					<DialogHeader>
-						<DialogTitle>
+						<DialogTitle class="text-base">
 							{editingItem ? 'แก้ไขเมนูอาหาร' : 'เพิ่มเมนูอาหาร'}
 						</DialogTitle>
 					</DialogHeader>
 					<div class="space-y-4">
 						<!-- ชื่อเมนู -->
 						<div class="space-y-2">
-							<Label for="menu-name">ชื่อเมนู</Label>
+							<Label for="menu-name" class="text-sm">ชื่อเมนู</Label>
 							<Input
 								id="menu-name"
 								bind:value={formData.name}
 								placeholder="ชื่อเมนูอาหาร"
+								class="text-sm"
 							/>
 						</div>
 
 						<!-- ราคา -->
 						<div class="space-y-2">
-							<Label for="menu-price">ราคา (บาท)</Label>
+							<Label for="menu-price" class="text-sm">ราคา (บาท)</Label>
 							<Input
 								id="menu-price"
 								type="number"
@@ -145,11 +147,12 @@
 								step="0.01"
 								bind:value={formData.price}
 								placeholder="0.00"
+								class="text-sm"
 							/>
 						</div>						<!-- เลือกผู้สั่ง -->
 						<div class="space-y-2">
 							<div class="flex items-baseline justify-between">
-								<Label>ผู้ที่สั่งเมนูนี้</Label>
+								<Label class="text-sm">ผู้ที่สั่งเมนูนี้</Label>
 								{#if $participants.length > 0}
 									<div class="flex items-center space-x-2">
 										<Checkbox
@@ -164,7 +167,7 @@
 								{/if}
 							</div>
 							{#if $participants.length > 0}
-								<div class="grid gap-2 max-h-40 overflow-y-auto">
+								<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2 border rounded-md">
 									{#each $participants as participant (participant.id)}
 										<div class="flex items-center space-x-2">
 											<Checkbox
@@ -174,7 +177,7 @@
 											/>
 											<Label
 												for={participant.id}
-												class="text-sm font-normal cursor-pointer"
+												class="text-sm font-normal cursor-pointer truncate"
 											>
 												{participant.name}
 											</Label>
@@ -187,13 +190,14 @@
 						</div>
 
 						<!-- ปุ่มบันทึก -->
-						<div class="flex justify-end gap-2">
-							<Button variant="outline" onclick={() => isDialogOpen = false}>
+						<div class="flex flex-col sm:flex-row justify-end gap-2">
+							<Button variant="outline" onclick={() => isDialogOpen = false} class="w-full sm:w-auto">
 								ยกเลิก
 							</Button>
 							<Button
 								onclick={handleSubmit}
 								disabled={!formData.name.trim() || formData.price <= 0 || formData.selectedParticipants.length === 0}
+								class="w-full sm:w-auto"
 							>
 								{editingItem ? 'บันทึก' : 'เพิ่มเมนู'}
 							</Button>
@@ -202,67 +206,72 @@
 				</DialogContent>
 			</Dialog>
 		</CardTitle>
-	</CardHeader>
-	<CardContent>
+	</CardHeader>	<CardContent>
 		{#if $menuItems.length > 0}
 			<div class="space-y-3">
 				{#each $menuItems as item (item.id)}
-					<div class="flex items-center justify-between rounded-lg border p-4">
-						<div class="flex-1">
-							<div class="flex items-center gap-2 mb-1">
-								<h4 class="font-medium">{item.name}</h4>
-								<Badge variant="outline" class="text-xs">
+					<div class="flex flex-col sm:flex-row sm:items-center justify-between rounded-lg border p-3 sm:p-4 bg-card/50 gap-3">
+						<div class="flex-1 min-w-0">
+							<div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+								<h4 class="font-medium text-sm sm:text-base truncate">{item.name}</h4>
+								<Badge variant="outline" class="text-xs w-fit">
 									{formatPrice(item.price)}
 								</Badge>
 							</div>
-							<div class="flex items-center gap-1 text-sm text-muted-foreground">
-								<span>สั่งโดย:</span>
-								<div class="flex flex-wrap gap-1">
-									{#each item.participants as participantId (participantId)}
-										{@const participant = $participants.find(p => p.id === participantId)}
-										{#if participant}
-											<Badge variant="secondary" class="text-xs">
-												{participant.name}
-											</Badge>
-										{/if}
-									{/each}
+							<div class="space-y-1">
+								<div class="flex flex-wrap items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+									<span>สั่งโดย:</span>
+									<div class="flex flex-wrap gap-1">
+										{#each item.participants as participantId (participantId)}
+											{@const participant = $participants.find(p => p.id === participantId)}
+											{#if participant}
+												<Badge variant="secondary" class="text-xs">
+													{participant.name}
+												</Badge>
+											{/if}
+										{/each}
+									</div>
+									<span class="text-xs">
+										({item.participants.length} คน)
+									</span>
 								</div>
-								<span class="text-xs">
-									({item.participants.length} คน)
-								</span>
+								<div class="text-xs text-muted-foreground">
+									ราคาต่อคน: <span class="font-medium">{formatPrice(item.price / item.participants.length)}</span>
+								</div>
 							</div>
-							<div class="text-xs text-muted-foreground mt-1">
-								ราคาต่อคน: {formatPrice(item.price / item.participants.length)}
-							</div>
-						</div>
-						<div class="flex gap-1 ml-4">
-							<Button
-								size="sm"
-								variant="ghost"
-								onclick={() => openEditDialog(item)}
-								class="h-8 w-8 p-0"
-							>
-								<Edit2 class="h-3 w-3" />
-							</Button>							<Button
-								size="sm"
-								variant="ghost"
-								onclick={() => handleRemoveMenuItem(item)}
-								class="h-8 w-8 p-0 text-destructive hover:text-destructive"
-							>
-								<Trash2 class="h-3 w-3" />
-							</Button>
+						</div>						<div class="flex gap-1 justify-end sm:ml-4">
+							<Tooltip text="แก้ไขเมนู">
+								<Button
+									size="sm"
+									variant="ghost"
+									onclick={() => openEditDialog(item)}
+									class="h-7 w-7 p-0"
+								>
+									<Edit2 class="h-3 w-3" />
+								</Button>
+							</Tooltip>
+							<Tooltip text="ลบเมนู">
+								<Button
+									size="sm"
+									variant="ghost"
+									onclick={() => handleRemoveMenuItem(item)}
+									class="h-7 w-7 p-0 text-destructive hover:text-destructive"
+								>
+									<Trash2 class="h-3 w-3" />
+								</Button>
+							</Tooltip>
 						</div>
 					</div>
 				{/each}
 			</div>
 		{:else}
-			<div class="text-center py-8 text-muted-foreground">
-				<UtensilsCrossed class="h-12 w-12 mx-auto mb-2 opacity-50" />
-				<p>ยังไม่มีรายการอาหาร</p>
+			<div class="text-center py-6 sm:py-8 text-muted-foreground">
+				<UtensilsCrossed class="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-2 opacity-50" />
+				<p class="text-sm sm:text-base">ยังไม่มีรายการอาหาร</p>
 				{#if $participants.length === 0}
-					<p class="text-sm">กรุณาเพิ่มผู้เข้าร่วมก่อนแล้วจึงเพิ่มเมนูอาหาร</p>
+					<p class="text-xs sm:text-sm mt-1">กรุณาเพิ่มผู้เข้าร่วมก่อนแล้วจึงเพิ่มเมนูอาหาร</p>
 				{:else}
-					<p class="text-sm">เริ่มต้นด้วยการเพิ่มเมนูอาหารที่สั่งกันเถอะ</p>
+					<p class="text-xs sm:text-sm mt-1">เริ่มต้นด้วยการเพิ่มเมนูอาหารที่สั่งกันเถอะ</p>
 				{/if}
 			</div>
 		{/if}

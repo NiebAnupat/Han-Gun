@@ -1,7 +1,7 @@
-<script lang="ts">
-	import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '$lib/components/ui/dialog';
+<script lang="ts">	import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
+	import Tooltip from '$lib/components/Tooltip.svelte';
 	import { HelpCircle, Users, UtensilsCrossed, Settings, Receipt, QrCode, Keyboard } from 'lucide-svelte';
 
 	let isOpen = false;
@@ -9,10 +9,12 @@
 
 <Dialog bind:open={isOpen}>
 	<DialogTrigger>
-		<Button variant="ghost" size="sm">
-			<HelpCircle class="h-4 w-4" />
-			<span class="hidden sm:inline">ช่วยเหลือ</span>
-		</Button>
+		<Tooltip text="เปิดคู่มือการใช้งาน">
+			<Button variant="ghost" size="sm">
+				<HelpCircle class="h-4 w-4" />
+				<span class="hidden sm:inline">ช่วยเหลือ</span>
+			</Button>
+		</Tooltip>
 	</DialogTrigger>
 	<DialogContent class="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
 		<DialogHeader>
