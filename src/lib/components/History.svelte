@@ -333,9 +333,9 @@
 							</p>
 
 							<!-- เลือกโหมดการนำเข้า -->
-							<div class="space-y-2">
+							<div >
 								<Label class="text-sm">โหมดการนำเข้า</Label>
-								<div class="space-y-3">
+								<div >
 									<label class="touch-target flex items-center space-x-3">
 										<input
 											type="radio"
