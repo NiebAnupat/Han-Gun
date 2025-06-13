@@ -154,17 +154,17 @@
 	<!-- Export Button -->	<Dialog bind:open={isExportDialogOpen}>
 		<DialogTrigger>
 			<Button variant="outline" size="sm" onclick={handleExport} class="hidden sm:inline-flex">
-				<Download class="h-4 w-4 mr-1" />
+				<Upload class="h-4 w-4 mr-1" />
 				ส่งออกข้อมูล
 			</Button>
 			<Button variant="outline" size="sm" onclick={handleExport} class="sm:hidden p-2">
-				<Download class="h-4 w-4" />
+				<Upload class="h-4 w-4" />
 			</Button>
 		</DialogTrigger>
 		<DialogContent class="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
 			<DialogHeader>
 				<DialogTitle class="flex items-center gap-2">
-					<Download class="h-5 w-5" />
+					<Upload class="h-5 w-5" />
 					ส่งออกข้อมูลบัญชี
 				</DialogTitle>
 			</DialogHeader>			<div class="space-y-4">
@@ -197,19 +197,16 @@
 
 	<!-- Import Button -->
 	<Dialog bind:open={isImportDialogOpen}>
-		<DialogTrigger>
-			<Button variant="outline" size="sm" class="hidden sm:inline-flex">
-				<Upload class="h-4 w-4 mr-1" />
+		<DialogTrigger>			<Button variant="outline" size="sm" class="hidden sm:inline-flex">
+				<Download class="h-4 w-4 mr-1" />
 				นำเข้าข้อมูล
-			</Button>
-			<Button variant="outline" size="sm" class="sm:hidden p-2">
-				<Upload class="h-4 w-4" />
+			</Button>			<Button variant="outline" size="sm" class="sm:hidden p-2">
+				<Download class="h-4 w-4" />
 			</Button>
 		</DialogTrigger>
 		<DialogContent class="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
 			<DialogHeader>
-				<DialogTitle class="flex items-center gap-2">
-					<Upload class="h-5 w-5" />
+				<DialogTitle class="flex items-center gap-2">					<Download class="h-5 w-5" />
 					นำเข้าข้อมูลบัญชี
 				</DialogTitle>
 			</DialogHeader>
