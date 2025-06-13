@@ -5,7 +5,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import { Download, Upload, FileText, AlertCircle, CheckCircle } from 'lucide-svelte';import { participants, menuItems, billSettings, promptPayInfo } from '$lib/stores.js';
+	import { Download, Upload, FileText, AlertCircle, CheckCircle } from 'lucide-svelte';	import { participants, menuItems, billSettings, promptPayInfo, history } from '$lib/stores.js';
 	import { addToast } from '$lib/toast.js';
 	import { exportAllData, importAllData, type ExportDataStructure } from '$lib/localStorage.js';
 	import type { Participant, MenuItem, BillSettings, PromptPayInfo } from '$lib/types.js';
@@ -74,8 +74,7 @@
 			return;
 		}
 		processImport();
-	}
-	function processImport() {
+	}	function processImport() {
 		try {
 			const parsedData: ExportDataStructure = JSON.parse(importData);
 
@@ -83,13 +82,47 @@
 			importAllData(parsedData);
 
 			// อัปเดต stores
-			const { participants: importParticipants, menuItems: importMenuItems, billSettings: importBillSettings, promptPayInfo: importPromptPayInfo } = parsedData.data;
+			const { participants: importParticipants, menuItems: importMenuItems, billSettings: importBillSettings, promptPayInfo: importPromptPayInfo, history: importHistory } = parsedData.data;
 
 			participants.set(importParticipants);
 			menuItems.set(importMenuItems);
 			billSettings.set(importBillSettings);
 			if (importPromptPayInfo) {
 				promptPayInfo.set(importPromptPayInfo);
+			}
+
+			// อัปเดตประวัติหากมี
+			if (importHistory && Array.isArray(importHistory)) {
+				// แปลง createdAt กลับเป็น Date object และทำ migration สำหรับประวัติเก่า
+				const processedHistory = importHistory.map(entry => {
+					const processedEntry = {
+						...entry,
+						createdAt: new Date(entry.createdAt)
+					};
+
+					// Migration: แปลง discount เก่าเป็น discounts array ในประวัติ
+					if (processedEntry.billSettings && 'discount' in processedEntry.billSettings) {
+						const oldDiscount = (processedEntry.billSettings as any).discount;
+						processedEntry.billSettings = {
+							...processedEntry.billSettings,
+							discounts: oldDiscount && oldDiscount !== null ? [
+								{
+									id: `${entry.id}-discount`,
+									name: 'ส่วนลดเก่า',
+									type: oldDiscount.type,
+									value: oldDiscount.value,
+									participants: oldDiscount.participants || []
+								}
+							] : []
+						};
+						// ลบ discount เก่าออก
+						delete (processedEntry.billSettings as any).discount;
+					}
+
+					return processedEntry;
+				});
+
+				history.set(processedHistory);
 			}
 
 			addToast('นำเข้าข้อมูลเรียบร้อยแล้ว', 'success');

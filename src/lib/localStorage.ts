@@ -217,16 +217,60 @@ export function importAllData(data: ExportDataStructure): void {
 		throw new Error('ข้อมูลไม่ครบถ้วนหรือผิดรูปแบบ');
 	}
 
+	// Migration สำหรับ billSettings (แปลง discount เก่าเป็น discounts array)
+	let migratedBillSettings = billSettings;
+	if ('discount' in billSettings) {
+		const oldDiscount = (billSettings as any).discount;
+		migratedBillSettings = {
+			vatPercentage: billSettings.vatPercentage || 7,
+			serviceChargePercentage: billSettings.serviceChargePercentage || 10,
+			discounts: oldDiscount && oldDiscount !== null ? [
+				{
+					id: Date.now().toString(),
+					name: 'ส่วนลดเก่า',
+					type: oldDiscount.type,
+					value: oldDiscount.value,
+					participants: oldDiscount.participants || []
+				}
+			] : []
+		};
+	}
+
 	// นำเข้าข้อมูล
 	saveParticipants(participants);
 	saveMenuItems(menuItems);
-	saveBillSettings(billSettings);
+	saveBillSettings(migratedBillSettings);
 	savePromptPayInfo(promptPayInfo || {});
 
-	// นำเข้าประวัติถ้ามี
+	// นำเข้าประวัติถ้ามี พร้อม migration
 	if (history && Array.isArray(history)) {
+		const migratedHistory = history.map(entry => {
+			const migratedEntry = { ...entry };
+
+			// Migration: แปลง discount เก่าเป็น discounts array ในประวัติ
+			if (migratedEntry.billSettings && 'discount' in migratedEntry.billSettings) {
+				const oldDiscount = (migratedEntry.billSettings as any).discount;
+				migratedEntry.billSettings = {
+					...migratedEntry.billSettings,
+					discounts: oldDiscount && oldDiscount !== null ? [
+						{
+							id: `${entry.id}-discount`,
+							name: 'ส่วนลดเก่า',
+							type: oldDiscount.type,
+							value: oldDiscount.value,
+							participants: oldDiscount.participants || []
+						}
+					] : []
+				};
+				// ลบ discount เก่าออก
+				delete (migratedEntry.billSettings as any).discount;
+			}
+
+			return migratedEntry;
+		});
+
 		if (typeof window !== 'undefined') {
-			localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
+			localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(migratedHistory));
 		}
 	}
 }
