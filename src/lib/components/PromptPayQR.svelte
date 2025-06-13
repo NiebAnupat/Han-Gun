@@ -9,47 +9,49 @@
 		DialogHeader,
 		DialogTitle,
 		DialogTrigger
-	} from '$lib/components/ui/dialog';
-	import { Badge } from '$lib/components/ui/badge';
-	import { QrCode, Copy, Settings, Smartphone, CreditCard, Download } from 'lucide-svelte';
+	} from '$lib/components/ui/dialog';	import { Badge } from '$lib/components/ui/badge';
+	import { QrCode, Copy, Settings, Smartphone, CreditCard, Download, Building2 } from 'lucide-svelte';
 	import { participants, menuItems, billSettings, promptPayInfo } from '$lib/stores.js';
 	import { calculateBillSummary } from '$lib/bill-calculator.js';
 	import { addToast } from '$lib/toast.js';
 	import type { BillSummary } from '$lib/types.js';
 	import generatePayload from 'promptpay-qr';
 	import { qr as svgQR } from '@svelte-put/qr/svg';
-	import ThaiQRLogo from '../../assets/images/Thai_QR_Logo.svg';
-	let isSettingsOpen = false;
+	import ThaiQRLogo from '../../assets/images/Thai_QR_Logo.svg';	let isSettingsOpen = false;
 	let selectedPersonId = '';
 	let selectedPersonAmount = 0;
 	let qrCodePayload = '';
 	let billSummary: BillSummary[] = [];
-	let settingsForm = {
+	let paymentMethod: 'promptpay' | 'bank' = 'promptpay';	let settingsForm = {
 		phoneNumber: '',
-		idNumber: ''
+		bankName: '',
+		accountNumber: '',
+		accountName: ''
 	};
 	// ซิงค์ข้อมูลจาก store
 	$: {
 		settingsForm.phoneNumber = $promptPayInfo.phoneNumber || '';
-		settingsForm.idNumber = $promptPayInfo.idNumber || '';
+		settingsForm.bankName = $promptPayInfo.bankName || '';
+		settingsForm.accountNumber = $promptPayInfo.accountNumber || '';
+		settingsForm.accountName = $promptPayInfo.accountName || '';
 	}
 
 	// คำนวณยอดเงินของแต่ละคน
-	$: billSummary = calculateBillSummary($participants, $menuItems, $billSettings);
-	function savePromptPaySettings() {
+	$: billSummary = calculateBillSummary($participants, $menuItems, $billSettings);	function savePromptPaySettings() {
 		promptPayInfo.update(() => ({
 			phoneNumber: settingsForm.phoneNumber || undefined,
-			idNumber: settingsForm.idNumber || undefined
+			bankName: settingsForm.bankName || undefined,
+			accountNumber: settingsForm.accountNumber || undefined,
+			accountName: settingsForm.accountName || undefined
 		}));
-		addToast('บันทึกข้อมูล PromptPay เรียบร้อยแล้ว', 'success');
+		addToast('บันทึกข้อมูลการชำระเงินเรียบร้อยแล้ว', 'success');
 		isSettingsOpen = false;
-	}
-	function generateQRCode(amount: number) {
+	}function generateQRCode(amount: number) {
 		try {
 			// ใช้ promptpay-qr library เพื่อสร้าง QR payload ที่ถูกต้องตามมาตรฐาน EMV
-			const promptPayId = $promptPayInfo.phoneNumber || $promptPayInfo.idNumber;
+			const promptPayId = $promptPayInfo.phoneNumber;
 			if (!promptPayId) {
-				console.error('No PromptPay ID available');
+				console.error('No PromptPay phone number available');
 				return '';
 			}
 
@@ -61,11 +63,16 @@
 			return '';
 		}
 	}
-
 	function showQRCode(personId: string, amount: number) {
 		selectedPersonId = personId;
 		selectedPersonAmount = amount;
 		qrCodePayload = generateQRCode(amount);
+	}
+
+	function showBankDetails(personId: string, amount: number) {
+		selectedPersonId = personId;
+		selectedPersonAmount = amount;
+		qrCodePayload = 'bank-details'; // Use this as a flag for bank details
 	}
 
 	function formatPrice(price: number) {
@@ -210,18 +217,29 @@
 			console.error('Error downloading QR code:', error);
 			addToast('เกิดข้อผิดพลาดในการดาวน์โหลด', 'error');
 		}
+	}	function hasPromptPayInfo() {
+		return $promptPayInfo.phoneNumber;
 	}
-	function hasPromptPayInfo() {
-		return $promptPayInfo.phoneNumber || $promptPayInfo.idNumber;
+
+	function hasBankInfo() {
+		return $promptPayInfo.bankName && $promptPayInfo.accountNumber;
+	}
+
+	function hasPaymentInfo() {
+		return hasPromptPayInfo() || hasBankInfo();
 	}
 </script>
 
 <Card class="w-full">
-	<CardHeader>
-		<CardTitle class="flex items-center justify-between">
+	<CardHeader>		<CardTitle class="flex items-center justify-between">
 			<div class="flex items-center gap-2">
-				<QrCode class="h-5 w-5" />
-				PromptPay QR Code
+				{#if paymentMethod === 'promptpay'}
+					<QrCode class="h-5 w-5" />
+					PromptPay QR Code
+				{:else}
+					<Building2 class="h-5 w-5" />
+					การโอนเงินผ่านธนาคาร
+				{/if}
 			</div>
 			<Dialog bind:open={isSettingsOpen}>
 				<DialogTrigger>
@@ -232,31 +250,43 @@
 				</DialogTrigger>
 				<DialogContent class="sm:max-w-md">
 					<DialogHeader>
-						<DialogTitle>ตั้งค่า PromptPay</DialogTitle>
-					</DialogHeader>
-					<div class="space-y-4">
+						<DialogTitle>ตั้งค่าการชำระเงิน</DialogTitle>
+					</DialogHeader>					<div class="space-y-4">
 						<div class="space-y-2">
-							<Label for="phone-number">เบอร์โทรศัพท์</Label>
+							<Label for="phone-number">เบอร์โทรศัพท์ PromptPay</Label>
 							<Input
 								id="phone-number"
 								bind:value={settingsForm.phoneNumber}
 								placeholder="0812345678"
 								maxlength={10}
-								oninput={() => (settingsForm.idNumber = '')}
 							/>
 						</div>
 						<div class="space-y-2">
-							<Label for="id-number">เลขประจำตัวประชาชน</Label>
+							<Label for="bank-name">ชื่อธนาคาร</Label>
 							<Input
-								id="id-number"
-								bind:value={settingsForm.idNumber}
-								placeholder="1234567890123"
-								maxlength={13}
-								oninput={() => (settingsForm.phoneNumber = '')}
+								id="bank-name"
+								bind:value={settingsForm.bankName}
+								placeholder="ธนาคารกสิกรไทย"
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label for="account-name">ชื่อบัญชี</Label>
+							<Input
+								id="account-name"
+								bind:value={settingsForm.accountName}
+								placeholder="นาย สมชาย ใจดี"
+							/>
+						</div>
+						<div class="space-y-2">
+							<Label for="account-number">เลขที่บัญชี</Label>
+							<Input
+								id="account-number"
+								bind:value={settingsForm.accountNumber}
+								placeholder="123-4-56789-0"
 							/>
 						</div>
 						<div class="text-muted-foreground text-xs">
-							เลือกกรอกอย่างใดอย่างหนึ่ง (แนะนำ: เบอร์โทรศัพท์)
+							กรอกข้อมูล PromptPay สำหรับ QR Code หรือข้อมูลธนาคารสำหรับการโอนเงิน
 						</div>
 						<div class="flex justify-end gap-2">
 							<Button variant="outline" onclick={() => (isSettingsOpen = false)}>ยกเลิก</Button>
@@ -266,13 +296,12 @@
 				</DialogContent>
 			</Dialog>
 		</CardTitle>
-	</CardHeader>
-	<CardContent>
-		{#if !hasPromptPayInfo()}
+	</CardHeader>	<CardContent>
+		{#if !hasPaymentInfo()}
 			<div class="text-muted-foreground py-8 text-center">
 				<Smartphone class="mx-auto mb-2 h-12 w-12 opacity-50" />
-				<p>ยังไม่ได้ตั้งค่า PromptPay</p>
-				<p class="mb-4 text-sm">กรุณาตั้งค่าข้อมูล PromptPay เพื่อสร้าง QR Code</p>
+				<p>ยังไม่ได้ตั้งค่าข้อมูลการชำระเงิน</p>
+				<p class="mb-4 text-sm">กรุณาตั้งค่าข้อมูล PromptPay หรือบัญชีธนาคาร</p>
 				<Button variant="outline" onclick={() => (isSettingsOpen = true)}>
 					<Settings class="h-4 w-4" />
 					ตั้งค่าตอนนี้
@@ -281,12 +310,32 @@
 		{:else if billSummary.length === 0}
 			<div class="text-muted-foreground py-8 text-center">
 				<QrCode class="mx-auto mb-2 h-12 w-12 opacity-50" />
-				<p>ยังไม่มีข้อมูลสำหรับสร้าง QR Code</p>
+				<p>ยังไม่มีข้อมูลสำหรับสร้างการชำระเงิน</p>
 				<p class="text-sm">เพิ่มผู้เข้าร่วมและรายการอาหารก่อน</p>
 			</div>
 		{:else}
 			<div class="space-y-4">
-				<!-- รายการแต่ละคน -->
+				<!-- Payment Method Selection -->
+				<div class="flex justify-center gap-2 mb-4">
+					<Button
+						variant={paymentMethod === 'promptpay' ? 'default' : 'outline'}
+						size="sm"
+						onclick={() => (paymentMethod = 'promptpay')}
+						disabled={!hasPromptPayInfo()}
+					>
+						<QrCode class="h-4 w-4 mr-2" />
+						QR PromptPay
+					</Button>
+					<Button
+						variant={paymentMethod === 'bank' ? 'default' : 'outline'}
+						size="sm"
+						onclick={() => (paymentMethod = 'bank')}
+						disabled={!hasBankInfo()}
+					>
+						<Building2 class="h-4 w-4 mr-2" />
+						โอนผ่านธนาคาร
+					</Button>
+				</div>				<!-- รายการแต่ละคน -->
 				<div class="space-y-3">
 					{#each billSummary as person (person.participantId)}
 						{#if person.grandTotal > 0}
@@ -304,78 +353,142 @@
 										<Copy class="h-3 w-3" />
 										คัดลอก
 									</Button>
-									<Button
-										size="sm"
-										onclick={() => showQRCode(person.participantId, person.grandTotal)}
-									>
-										<QrCode class="h-3 w-3" />
-										QR Code
-									</Button>
+									{#if paymentMethod === 'promptpay'}
+										<Button
+											size="sm"
+											onclick={() => showQRCode(person.participantId, person.grandTotal)}
+										>
+											<QrCode class="h-3 w-3" />
+											QR Code
+										</Button>
+									{:else}
+										<Button
+											size="sm"
+											onclick={() => showBankDetails(person.participantId, person.grandTotal)}
+										>
+											<Building2 class="h-3 w-3" />
+											ข้อมูลโอน
+										</Button>
+									{/if}
 								</div>
 							</div>
 						{/if}
 					{/each}
-				</div>
-				<!-- แสดง QR Code ใน Dialog -->
+				</div>				<!-- แสดง QR Code หรือข้อมูลธนาคาร ใน Dialog -->
 				{#if qrCodePayload}
 					<Dialog open={!!qrCodePayload} onOpenChange={(open) => !open && (qrCodePayload = '')}>
 						<DialogContent class="sm:max-w-md">
 							<DialogHeader>
 								<DialogTitle>
-									QR Code สำหรับ
+									{qrCodePayload === 'bank-details' ? 'ข้อมูลการโอนเงิน' : 'QR Code'}สำหรับ
 									{billSummary.find((p) => p.participantId === selectedPersonId)?.participantName}
 								</DialogTitle>
 							</DialogHeader>
 							<div class="space-y-4">
-								<!-- QR Code -->
-								<div class="flex justify-center">
-									<div class="relative rounded-lg border bg-white p-4">
-										<svg
-											use:svgQR={{
-												data: qrCodePayload
-											}}
-											width="200"
-											height="200"
-											class="flex items-center justify-center"
-											data-qr-svg
-										></svg>										<!-- Thai QR Logo overlay -->
-										<div
-											class="pointer-events-none absolute inset-0 flex items-center justify-center"
-										>
-											<div class="bg-white rounded-lg p-2">
-												<img src={ThaiQRLogo} alt="Thai QR Logo" class="w-15" />
+								{#if qrCodePayload === 'bank-details'}
+									<!-- Bank Details -->
+									<div class="space-y-4">
+										<div class="text-center">
+											<Building2 class="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
+											<div class="text-lg font-medium mb-2">
+												{formatPrice(selectedPersonAmount)}
+											</div>
+										</div>										<div class="space-y-3 rounded-lg border p-4">
+											<div class="flex justify-between items-center">
+												<span class="text-muted-foreground">ธนาคาร:</span>
+												<span class="font-medium">{$promptPayInfo.bankName}</span>
+											</div>
+											<div class="flex justify-between items-center">
+												<span class="text-muted-foreground">ชื่อบัญชี:</span>
+												<span class="font-medium">{$promptPayInfo.accountName}</span>
+											</div>
+											<div class="flex justify-between items-center">
+												<span class="text-muted-foreground">เลขที่บัญชี:</span>
+												<div class="flex items-center gap-2">
+													<span class="font-medium">{$promptPayInfo.accountNumber}</span>
+													<Button
+														size="sm"
+														variant="ghost"
+														onclick={() => {
+															navigator.clipboard.writeText($promptPayInfo.accountNumber || '');
+															addToast('คัดลอกเลขบัญชีสำเร็จ', 'success');
+														}}
+													>
+														<Copy class="h-3 w-3" />
+													</Button>
+												</div>
+											</div>
+											<div class="flex justify-between items-center">
+												<span class="text-muted-foreground">จำนวนเงิน:</span>
+												<div class="flex items-center gap-2">
+													<span class="font-medium">{selectedPersonAmount.toFixed(2)} บาท</span>
+													<Button
+														size="sm"
+														variant="ghost"
+														onclick={() => copyAmount(selectedPersonAmount)}
+													>
+														<Copy class="h-3 w-3" />
+													</Button>
+												</div>
+											</div>
+										</div>
+
+										<div class="flex justify-center gap-2">
+											<Button variant="outline" onclick={() => copyAmount(selectedPersonAmount)}>
+												<Copy class="h-4 w-4" />
+												คัดลอกจำนวนเงิน
+											</Button>
+											<Button onclick={() => (qrCodePayload = '')}>ปิด</Button>
+										</div>
+									</div>
+								{:else}
+									<!-- QR Code -->
+									<div class="flex justify-center">
+										<div class="relative rounded-lg border bg-white p-4">
+											<svg
+												use:svgQR={{
+													data: qrCodePayload
+												}}
+												width="200"
+												height="200"
+												class="flex items-center justify-center"
+												data-qr-svg
+											></svg>
+											<!-- Thai QR Logo overlay -->
+											<div
+												class="pointer-events-none absolute inset-0 flex items-center justify-center"
+											>
+												<div class="bg-white rounded-lg p-2">
+													<img src={ThaiQRLogo} alt="Thai QR Logo" class="w-15" />
+												</div>
 											</div>
 										</div>
 									</div>
-								</div>
 
-								<!-- ข้อมูลการโอน -->
-								<div class="space-y-2 text-center">
-									<div class="text-lg font-medium">
-										{formatPrice(selectedPersonAmount)}
+									<!-- ข้อมูลการโอน -->
+									<div class="space-y-2 text-center">
+										<div class="text-lg font-medium">
+											{formatPrice(selectedPersonAmount)}
+										</div>
+										{#if $promptPayInfo.phoneNumber}
+											<div class="text-muted-foreground text-sm">
+												โอนไปยัง: {$promptPayInfo.phoneNumber}
+											</div>
+										{/if}
 									</div>
-									{#if $promptPayInfo.phoneNumber}
-										<div class="text-muted-foreground text-sm">
-											โอนไปยัง: {$promptPayInfo.phoneNumber}
-										</div>
-									{:else if $promptPayInfo.idNumber}
-										<div class="text-muted-foreground text-sm">
-											โอนไปยัง: {$promptPayInfo.idNumber}
-										</div>
-									{/if}
-								</div>
-								<!-- ปุ่มคัดลอกจำนวนเงิน -->
-								<div class="flex justify-center gap-2">
-									<Button variant="outline" onclick={() => copyAmount(selectedPersonAmount)}>
-										<Copy class="h-4 w-4" />
-										คัดลอกจำนวนเงิน
-									</Button>
-									<Button variant="outline" onclick={downloadQRCode}>
-										<Download class="h-4 w-4" />
-										ดาวน์โหลด QR
-									</Button>
-									<Button onclick={() => (qrCodePayload = '')}>ปิด</Button>
-								</div>
+									<!-- ปุ่มคัดลอกจำนวนเงิน -->
+									<div class="flex justify-center gap-2">
+										<Button variant="outline" onclick={() => copyAmount(selectedPersonAmount)}>
+											<Copy class="h-4 w-4" />
+											คัดลอกจำนวนเงิน
+										</Button>
+										<Button variant="outline" onclick={downloadQRCode}>
+											<Download class="h-4 w-4" />
+											ดาวน์โหลด QR
+										</Button>
+										<Button onclick={() => (qrCodePayload = '')}>ปิด</Button>
+									</div>
+								{/if}
 							</div>
 						</DialogContent>
 					</Dialog>

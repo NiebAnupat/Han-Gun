@@ -36,9 +36,9 @@ export interface BillSummary {
 
 export interface PromptPayInfo {
 	phoneNumber?: string;
-	idNumber?: string;
+	bankName?: string;
 	accountNumber?: string;
-	bankCode?: string;
+	accountName?: string;
 }
 
 export interface HistoryEntry {
