@@ -76,7 +76,7 @@ export function saveBillToHistory(name: string, billSummary: any[]) {
 	// อ่านข้อมูลปัจจุบันจาก stores
 	let currentParticipants: Participant[] = [];
 	let currentMenuItems: MenuItem[] = [];
-	let currentBillSettings: BillSettings = { vatPercentage: 7, serviceChargePercentage: 10, discount: null };
+	let currentBillSettings: BillSettings = { vatPercentage: 7, serviceChargePercentage: 10, discounts: [] };
 
 	participants.subscribe(value => currentParticipants = value)();
 	menuItems.subscribe(value => currentMenuItems = value)();
@@ -112,7 +112,7 @@ export function removeHistoryEntry(id: string) {
 export function clearCurrentBill() {
 	participants.set([]);
 	menuItems.set([]);
-	billSettings.set({ vatPercentage: 7, serviceChargePercentage: 10, discount: null });
+	billSettings.set({ vatPercentage: 7, serviceChargePercentage: 10, discounts: [] });
 }
 
 export function importHistoryData(newEntries: HistoryEntry[], replaceExisting: boolean = false) {

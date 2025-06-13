@@ -27,18 +27,19 @@ export function calculateBillSummary(
 
 		// คำนวณ VAT (จากยอดรวมอาหาร + ค่าบริการ)
 		const vat = ((foodTotal + serviceCharge) * settings.vatPercentage) / 100;
-
 		// คำนวณส่วนลดที่ได้รับ
 		let discountReceived = 0;
-		if (settings.discount && settings.discount.participants.includes(participant.id)) {
-			const subtotal = foodTotal + serviceCharge + vat;
+		for (const discount of settings.discounts) {
+			if (discount.participants.includes(participant.id)) {
+				const subtotal = foodTotal + serviceCharge + vat;
 
-			if (settings.discount.type === 'fixed') {
-				// ส่วนลดแบบจำนวนเงินคงที่ - แบ่งกันตามจำนวนคนที่ได้รับส่วนลด
-				discountReceived = settings.discount.value / settings.discount.participants.length;
-			} else {
-				// ส่วนลดแบบเปอร์เซ็นต์
-				discountReceived = (subtotal * settings.discount.value) / 100;
+				if (discount.type === 'fixed') {
+					// ส่วนลดแบบจำนวนเงินคงที่ - แบ่งกันตามจำนวนคนที่ได้รับส่วนลด
+					discountReceived += discount.value / discount.participants.length;
+				} else {
+					// ส่วนลดแบบเปอร์เซ็นต์
+					discountReceived += (subtotal * discount.value) / 100;
+				}
 			}
 		}
 
@@ -66,11 +67,11 @@ export function calculateTotalBill(menuItems: MenuItem[], settings: BillSettings
 	const vat = ((subtotal + serviceCharge) * settings.vatPercentage) / 100;
 
 	let totalDiscount = 0;
-	if (settings.discount) {
-		if (settings.discount.type === 'fixed') {
-			totalDiscount = settings.discount.value;
+	for (const discount of settings.discounts) {
+		if (discount.type === 'fixed') {
+			totalDiscount += discount.value;
 		} else {
-			totalDiscount = ((subtotal + serviceCharge + vat) * settings.discount.value) / 100;
+			totalDiscount += ((subtotal + serviceCharge + vat) * discount.value) / 100;
 		}
 	}
 

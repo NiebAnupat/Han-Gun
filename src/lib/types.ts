@@ -13,6 +13,8 @@ export interface MenuItem {
 }
 
 export interface Discount {
+	id: string;
+	name: string; // ชื่อส่วนลด เช่น "ส่วนลดสมาชิก", "คูปองส่วนลด"
 	type: 'fixed' | 'percentage';
 	value: number;
 	participants: string[]; // IDs ของผู้เข้าร่วมที่ได้รับส่วนลด
@@ -21,7 +23,7 @@ export interface Discount {
 export interface BillSettings {
 	vatPercentage: number; // เปอร์เซ็นต์ VAT (เช่น 7%)
 	serviceChargePercentage: number; // เปอร์เซ็นต์ค่าบริการ (เช่น 10%)
-	discount: Discount | null;
+	discounts: Discount[]; // เปลี่ยนจาก discount เป็น discounts array
 }
 
 export interface BillSummary {

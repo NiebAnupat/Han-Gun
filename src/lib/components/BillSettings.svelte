@@ -1,4 +1,6 @@
-<script lang="ts">	import { Button } from '$lib/components/ui/button';
+<!-- BillSettings Component สำหรับหลายส่วนลด -->
+<script lang="ts">
+	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card';
@@ -6,12 +8,17 @@
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '$lib/components/ui/dialog';
 	import { Separator } from '$lib/components/ui/separator';
-	import Tooltip from '$lib/components/Tooltip.svelte';import { Percent, DollarSign, Settings, Trash2 } from 'lucide-svelte';
+	import Tooltip from '$lib/components/Tooltip.svelte';
+	import { Percent, DollarSign, Settings, Trash2, Plus, Edit } from 'lucide-svelte';
 	import { participants, billSettings } from '$lib/stores.js';
 	import { addToast } from '$lib/toast.js';
-	import type { Discount } from '$lib/types.js';	let isDiscountDialogOpen = false;
+	import type { Discount } from '$lib/types.js';
+
+	let isDiscountDialogOpen = false;
 	let isSettingsDialogOpen = false;
+	let editingDiscountId: string | null = null;
 	let discountForm = {
+		name: '',
 		type: 'percentage' as 'fixed' | 'percentage',
 		value: 0,
 		selectedParticipants: [] as string[]
@@ -21,6 +28,7 @@
 		vatPercentage: 7,
 		serviceChargePercentage: 10
 	};
+
 	// ซิงค์ข้อมูลจาก store
 	$: {
 		settingsForm.vatPercentage = $billSettings.vatPercentage;
@@ -29,25 +37,36 @@
 
 	function resetDiscountForm() {
 		discountForm = {
+			name: '',
 			type: 'percentage',
 			value: 0,
 			selectedParticipants: []
 		};
+		editingDiscountId = null;
 	}
 
-	function openDiscountDialog() {
-		if ($billSettings.discount) {
+	function openDiscountDialog(discount?: Discount) {
+		if (discount) {
+			// แก้ไขส่วนลดที่มีอยู่
+			editingDiscountId = discount.id;
 			discountForm = {
-				type: $billSettings.discount.type,
-				value: $billSettings.discount.value,
-				selectedParticipants: [...$billSettings.discount.participants]
+				name: discount.name,
+				type: discount.type,
+				value: discount.value,
+				selectedParticipants: [...discount.participants]
 			};
 		} else {
+			// เพิ่มส่วนลดใหม่
 			resetDiscountForm();
 		}
 		isDiscountDialogOpen = true;
 	}
+
 	function handleDiscountSubmit() {
+		if (!discountForm.name.trim()) {
+			addToast('กรุณาใส่ชื่อส่วนลด', 'warning');
+			return;
+		}
 		if (discountForm.value <= 0) {
 			addToast('กรุณาใส่จำนวนส่วนลดที่ถูกต้อง', 'warning');
 			return;
@@ -62,32 +81,51 @@
 		}
 
 		const discount: Discount = {
+			id: editingDiscountId || Date.now().toString(),
+			name: discountForm.name.trim(),
 			type: discountForm.type,
 			value: discountForm.value,
 			participants: discountForm.selectedParticipants
 		};
 
-		billSettings.update(settings => ({
-			...settings,
-			discount
-		}));
+		billSettings.update(settings => {
+			if (editingDiscountId) {
+				// แก้ไขส่วนลดที่มีอยู่
+				return {
+					...settings,
+					discounts: settings.discounts.map(d => d.id === editingDiscountId ? discount : d)
+				};
+			} else {
+				// เพิ่มส่วนลดใหม่
+				return {
+					...settings,
+					discounts: [...settings.discounts, discount]
+				};
+			}
+		});
 
-		addToast('บันทึกส่วนลดเรียบร้อยแล้ว', 'success');
+		addToast(editingDiscountId ? 'แก้ไขส่วนลดเรียบร้อยแล้ว' : 'เพิ่มส่วนลดเรียบร้อยแล้ว', 'success');
 		isDiscountDialogOpen = false;
+		resetDiscountForm();
 	}
-	function removeDiscount() {
+
+	function removeDiscount(discountId: string) {
 		billSettings.update(settings => ({
 			...settings,
-			discount: null
+			discounts: settings.discounts.filter(d => d.id !== discountId)
 		}));
 		addToast('ลบส่วนลดเรียบร้อยแล้ว', 'info');
-	}	function toggleDiscountParticipant(participantId: string) {
+	}
+
+	function toggleDiscountParticipant(participantId: string) {
 		if (discountForm.selectedParticipants.includes(participantId)) {
 			discountForm.selectedParticipants = discountForm.selectedParticipants.filter(id => id !== participantId);
 		} else {
 			discountForm.selectedParticipants = [...discountForm.selectedParticipants, participantId];
 		}
-	}function handleSettingsSubmit() {
+	}
+
+	function handleSettingsSubmit() {
 		if (settingsForm.vatPercentage < 0 || settingsForm.vatPercentage > 100) {
 			addToast('VAT ต้องอยู่ระหว่าง 0-100%', 'warning');
 			return;
@@ -121,12 +159,14 @@
 	}
 </script>
 
-<Card class="w-full">	<CardHeader>
+<Card class="w-full">
+	<CardHeader>
 		<CardTitle class="flex items-center justify-between">
 			<div class="flex items-center gap-2 min-w-0">
 				<Settings class="h-5 w-5 flex-shrink-0" />
-				<span class="truncate">การตั้งค่าบิล</span>
-			</div>			<Dialog bind:open={isSettingsDialogOpen}>
+				<span>การตั้งค่าบิล</span>
+			</div>
+			<Dialog bind:open={isSettingsDialogOpen}>
 				<DialogTrigger>
 					<Tooltip text="ตั้งค่า VAT และค่าบริการ">
 						<Button variant="outline" size="sm" class="flex-shrink-0">
@@ -176,7 +216,9 @@
 				</DialogContent>
 			</Dialog>
 		</CardTitle>
-	</CardHeader>	<CardContent class="space-y-4">
+	</CardHeader>
+
+	<CardContent class="space-y-4">
 		<!-- แสดงการตั้งค่าปัจจุบัน -->
 		<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
 			<div class="flex justify-between p-2 rounded bg-muted/30">
@@ -194,26 +236,41 @@
 		<!-- จัดการส่วนลด -->
 		<div class="space-y-3">
 			<div class="flex items-center justify-between">
-				<h4 class="font-medium text-sm sm:text-base">ส่วนลด</h4>				<Dialog bind:open={isDiscountDialogOpen}>
+				<h4 class="font-medium text-sm sm:text-base">ส่วนลด</h4>
+				<Dialog bind:open={isDiscountDialogOpen}>
 					<DialogTrigger>
-						<Tooltip text={$billSettings.discount ? 'แก้ไขส่วนลด' : 'เพิ่มส่วนลด'} disabled={$participants.length === 0}>
+						<Tooltip text="เพิ่มส่วนลด" disabled={$participants.length === 0}>
 							<Button
 								variant="outline"
 								size="sm"
-								onclick={openDiscountDialog}
+								onclick={() => openDiscountDialog()}
 								disabled={$participants.length === 0}
 								class="flex-shrink-0"
 							>
-								<Percent class="h-4 w-4 sm:mr-1" />
-								<span class="hidden sm:inline">{$billSettings.discount ? 'แก้ไข' : 'เพิ่ม'}ส่วนลด</span>
+								<Plus class="h-4 w-4 sm:mr-1" />
+								<span class="hidden sm:inline">เพิ่มส่วนลด</span>
 							</Button>
 						</Tooltip>
 					</DialogTrigger>
 					<DialogContent class="w-[95vw] max-w-md mx-auto">
 						<DialogHeader>
-							<DialogTitle class="text-base">จัดการส่วนลด</DialogTitle>
+							<DialogTitle class="text-base">
+								{editingDiscountId ? 'แก้ไขส่วนลด' : 'เพิ่มส่วนลด'}
+							</DialogTitle>
 						</DialogHeader>
 						<div class="space-y-4">
+							<!-- ชื่อส่วนลด -->
+							<div class="space-y-2">
+								<Label for="discount-name" class="text-sm">ชื่อส่วนลด</Label>
+								<Input
+									id="discount-name"
+									type="text"
+									bind:value={discountForm.name}
+									placeholder="เช่น ส่วนลดสมาชิก, คูปองส่วนลด"
+									class="text-sm"
+								/>
+							</div>
+
 							<!-- ประเภทส่วนลด -->
 							<div class="space-y-2">
 								<Label class="text-sm">ประเภทส่วนลด</Label>
@@ -281,15 +338,15 @@
 							</div>
 
 							<div class="flex flex-col sm:flex-row justify-end gap-2">
-								<Button variant="outline" onclick={() => isDiscountDialogOpen = false} class="w-full sm:w-auto">
+								<Button variant="outline" onclick={() => { isDiscountDialogOpen = false; resetDiscountForm(); }} class="w-full sm:w-auto">
 									ยกเลิก
 								</Button>
 								<Button
 									onclick={handleDiscountSubmit}
-									disabled={discountForm.value <= 0 || discountForm.selectedParticipants.length === 0}
+									disabled={!discountForm.name.trim() || discountForm.value <= 0 || discountForm.selectedParticipants.length === 0}
 									class="w-full sm:w-auto"
 								>
-									บันทึก
+									{editingDiscountId ? 'แก้ไข' : 'เพิ่ม'}
 								</Button>
 							</div>
 						</div>
@@ -298,34 +355,54 @@
 			</div>
 
 			<!-- แสดงส่วนลดปัจจุบัน -->
-			{#if $billSettings.discount}
-				<div class="rounded-lg border p-3 bg-muted/50">
-					<div class="flex items-start justify-between gap-3">
-						<div class="space-y-1 min-w-0 flex-1">
-							<div class="flex items-center gap-2">
-								<Badge variant="secondary" class="text-xs">
-									{#if $billSettings.discount.type === 'percentage'}
-										{$billSettings.discount.value}% ส่วนลด
-									{:else}
-										{formatPrice($billSettings.discount.value)} ส่วนลด
-									{/if}
-								</Badge>
+			{#if $billSettings.discounts.length > 0}
+				<div class="space-y-2">
+					{#each $billSettings.discounts as discount (discount.id)}
+						<div class="rounded-lg border p-3 bg-muted/50">
+							<div class="flex items-start justify-between gap-3">
+								<div class="space-y-1 min-w-0 flex-1">
+									<div class="flex items-center gap-2 flex-wrap">
+										<Badge variant="secondary" class="text-xs">
+											{discount.name}
+										</Badge>
+										<Badge variant="outline" class="text-xs">
+											{#if discount.type === 'percentage'}
+												{discount.value}%
+											{:else}
+												{formatPrice(discount.value)}
+											{/if}
+										</Badge>
+									</div>
+									<div class="text-xs sm:text-sm text-muted-foreground">
+										สำหรับ: {getDiscountParticipantNames(discount.participants)}
+										({discount.participants.length} คน)
+									</div>
+								</div>
+								<div class="flex gap-1 flex-shrink-0">
+									<Tooltip text="แก้ไขส่วนลด">
+										<Button
+											size="sm"
+											variant="ghost"
+											onclick={() => openDiscountDialog(discount)}
+											class="h-7 w-7 p-0"
+										>
+											<Edit class="h-3 w-3" />
+										</Button>
+									</Tooltip>
+									<Tooltip text="ลบส่วนลด">
+										<Button
+											size="sm"
+											variant="ghost"
+											onclick={() => removeDiscount(discount.id)}
+											class="h-7 w-7 p-0 text-destructive hover:text-destructive"
+										>
+											<Trash2 class="h-3 w-3" />
+										</Button>
+									</Tooltip>
+								</div>
 							</div>
-							<div class="text-xs sm:text-sm text-muted-foreground">
-								สำหรับ: {getDiscountParticipantNames($billSettings.discount.participants)}
-								({$billSettings.discount.participants.length} คน)
-							</div>
-						</div>						<Tooltip text="ลบส่วนลด">
-							<Button
-								size="sm"
-								variant="ghost"
-								onclick={removeDiscount}
-								class="h-7 w-7 p-0 text-destructive hover:text-destructive flex-shrink-0"
-							>
-								<Trash2 class="h-3 w-3" />
-							</Button>
-						</Tooltip>
-					</div>
+						</div>
+					{/each}
 				</div>
 			{:else}
 				<div class="text-center py-4 text-muted-foreground">

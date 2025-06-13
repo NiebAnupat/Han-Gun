@@ -9,6 +9,7 @@
 	import History from '$lib/components/History.svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import Tooltip from '$lib/components/Tooltip.svelte';
+	import ExportImport from '$lib/components/ExportImport.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '$lib/components/ui/dialog';
 	import { Calculator, Trash2, RefreshCw } from 'lucide-svelte';
@@ -27,7 +28,7 @@
 		billSettings.set({
 			vatPercentage: 7,
 			serviceChargePercentage: 10,
-			discount: null
+			discounts: []
 		});
 		promptPayInfo.set({});
 
@@ -64,6 +65,7 @@
 
 				<!-- Action Buttons -->
 				<div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+					<ExportImport />
 					<HelpDialog />
 					<Dialog bind:open={isResetDialogOpen}>
 					<DialogTrigger>

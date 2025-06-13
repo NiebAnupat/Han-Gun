@@ -36,7 +36,6 @@
 			addToast('ไม่สามารถคัดลอกได้', 'error');
 		});
 	}
-
 	function generateSummaryText() {
 		let text = '🧾 สรุปยอดเงิน "หารกัน"\n\n';
 
@@ -47,7 +46,7 @@
 			text += `   ค่าบริการ: ${formatPrice(person.serviceCharge)}\n`;
 			text += `   VAT: ${formatPrice(person.vat)}\n`;
 			if (person.discountReceived > 0) {
-				text += `   ส่วนลด: -${formatPrice(person.discountReceived)}\n`;
+				text += `   ส่วนลดรวม: -${formatPrice(person.discountReceived)}\n`;
 			}
 			text += `   รวม: ${formatPrice(person.grandTotal)}\n\n`;
 		});
@@ -57,8 +56,23 @@
 		text += `   ยอดอาหาร: ${formatPrice(totalBill.subtotal)}\n`;
 		text += `   ค่าบริการ (${$billSettings.serviceChargePercentage}%): ${formatPrice(totalBill.serviceCharge)}\n`;
 		text += `   VAT (${$billSettings.vatPercentage}%): ${formatPrice(totalBill.vat)}\n`;
+
+		// แสดงรายละเอียดส่วนลดแต่ละรายการ
+		if ($billSettings.discounts.length > 0) {
+			$billSettings.discounts.forEach(discount => {
+				const discountText = discount.type === 'percentage'
+					? `${discount.value}%`
+					: formatPrice(discount.value);
+				text += `   ส่วนลด "${discount.name}" (${discountText}): -${formatPrice(
+					discount.type === 'fixed'
+						? discount.value
+						: ((totalBill.subtotal + totalBill.serviceCharge + totalBill.vat) * discount.value) / 100
+				)}\n`;
+			});
+		}
+
 		if (totalBill.totalDiscount > 0) {
-			text += `   ส่วนลด: -${formatPrice(totalBill.totalDiscount)}\n`;
+			text += `   ส่วนลดรวม: -${formatPrice(totalBill.totalDiscount)}\n`;
 		}
 		text += `   ยอดรวมสุทธิ: ${formatPrice(totalBill.grandTotal)}\n`;
 
@@ -94,7 +108,7 @@
 		<CardTitle class="flex items-center justify-between">
 			<div class="flex items-center gap-2 min-w-0">
 				<Receipt class="h-5 w-5 flex-shrink-0" />
-				<span class="truncate">สรุปยอดเงิน</span>
+				<span >สรุปยอดเงิน</span>
 			</div>			{#if billSummary.length > 0}
 				<div class="flex gap-1 flex-shrink-0">
 					<Tooltip text="คัดลอกข้อความสรุปยอดเงิน">
@@ -176,11 +190,10 @@
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>ชื่อ</TableHead>
-									<TableHead class="text-right">อาหาร</TableHead>
+									<TableHead>ชื่อ</TableHead>									<TableHead class="text-right">อาหาร</TableHead>
 									<TableHead class="text-right">ค่าบริการ</TableHead>
 									<TableHead class="text-right">VAT</TableHead>
-									{#if $billSettings.discount}
+									{#if $billSettings.discounts.length > 0}
 										<TableHead class="text-right">ส่วนลด</TableHead>
 									{/if}
 									<TableHead class="text-right font-medium">รวม</TableHead>
@@ -197,11 +210,10 @@
 										</TableCell>
 										<TableCell class="text-right">
 											{formatPrice(person.serviceCharge)}
-										</TableCell>
-										<TableCell class="text-right">
+										</TableCell>										<TableCell class="text-right">
 											{formatPrice(person.vat)}
 										</TableCell>
-										{#if $billSettings.discount}
+										{#if $billSettings.discounts.length > 0}
 											<TableCell class="text-right">
 												{person.discountReceived > 0 ? `-${formatPrice(person.discountReceived)}` : '-'}
 											</TableCell>
@@ -231,14 +243,33 @@
 						<div class="flex justify-between">
 							<span class="text-muted-foreground">ค่าบริการ ({$billSettings.serviceChargePercentage}%):</span>
 							<span>{formatPrice(totalBill.serviceCharge)}</span>
-						</div>
-						<div class="flex justify-between">
+						</div>						<div class="flex justify-between">
 							<span class="text-muted-foreground">VAT ({$billSettings.vatPercentage}%):</span>
 							<span>{formatPrice(totalBill.vat)}</span>
 						</div>
+
+						<!-- แสดงรายละเอียดส่วนลดแต่ละรายการ -->
+						{#if $billSettings.discounts.length > 0}
+							{#each $billSettings.discounts as discount}
+								<div class="flex justify-between">
+									<span class="text-muted-foreground text-xs">
+										ส่วนลด "{discount.name}"
+										({discount.type === 'percentage' ? `${discount.value}%` : formatPrice(discount.value)}):
+									</span>
+									<span class="text-destructive text-xs">
+										-{formatPrice(
+											discount.type === 'fixed'
+												? discount.value
+												: ((totalBill.subtotal + totalBill.serviceCharge + totalBill.vat) * discount.value) / 100
+										)}
+									</span>
+								</div>
+							{/each}
+						{/if}
+
 						{#if totalBill.totalDiscount > 0}
 							<div class="flex justify-between">
-								<span class="text-muted-foreground">ส่วนลด:</span>
+								<span class="text-muted-foreground">ส่วนลดรวม:</span>
 								<span class="text-destructive">-{formatPrice(totalBill.totalDiscount)}</span>
 							</div>
 						{/if}

@@ -54,14 +54,39 @@ export function saveBillSettings(settings: BillSettings): void {
 
 export function loadBillSettings(): BillSettings {
 	if (typeof window === 'undefined') {
-		return { vatPercentage: 7, serviceChargePercentage: 10, discount: null };
+		return { vatPercentage: 7, serviceChargePercentage: 10, discounts: [] };
 	}
 	const data = localStorage.getItem(STORAGE_KEYS.BILL_SETTINGS);
-	return safeJSONParse(data, {
+	const settings: any = safeJSONParse(data, {
 		vatPercentage: 7,
 		serviceChargePercentage: 10,
 		discount: null
 	});
+
+	// Migration: แปลง discount เก่าเป็น discounts array ใหม่
+	if ('discount' in settings && settings.discount && settings.discount !== null) {
+		const oldDiscount = settings.discount;
+		return {
+			vatPercentage: settings.vatPercentage || 7,
+			serviceChargePercentage: settings.serviceChargePercentage || 10,
+			discounts: [
+				{
+					id: Date.now().toString(),
+					name: 'ส่วนลดเก่า',
+					type: oldDiscount.type,
+					value: oldDiscount.value,
+					participants: oldDiscount.participants || []
+				}
+			]
+		};
+	}
+
+	// ส่งคืนข้อมูลปกติ
+	return {
+		vatPercentage: settings.vatPercentage || 7,
+		serviceChargePercentage: settings.serviceChargePercentage || 10,
+		discounts: Array.isArray(settings.discounts) ? settings.discounts : []
+	};
 }
 
 // PromptPay Info
@@ -150,5 +175,58 @@ export function replaceHistory(newEntries: HistoryEntry[]): void {
 			.slice(0, 100); // จำกัดไม่เกิน 100 รายการ
 
 		localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(sortedEntries));
+	}
+}
+
+// Export/Import all data
+export interface ExportDataStructure {
+	version: string;
+	timestamp: string;
+	data: {
+		participants: Participant[];
+		menuItems: MenuItem[];
+		billSettings: BillSettings;
+		promptPayInfo: PromptPayInfo;
+		history?: HistoryEntry[];
+	};
+}
+
+export function exportAllData(includeHistory = false): ExportDataStructure {
+	return {
+		version: '1.0',
+		timestamp: new Date().toISOString(),
+		data: {
+			participants: loadParticipants(),
+			menuItems: loadMenuItems(),
+			billSettings: loadBillSettings(),
+			promptPayInfo: loadPromptPayInfo(),
+			...(includeHistory && { history: loadHistory() })
+		}
+	};
+}
+
+export function importAllData(data: ExportDataStructure): void {
+	if (!data.version || !data.data) {
+		throw new Error('รูปแบบข้อมูลไม่ถูกต้อง');
+	}
+
+	const { participants, menuItems, billSettings, promptPayInfo, history } = data.data;
+
+	// ตรวจสอบข้อมูลที่จำเป็น
+	if (!Array.isArray(participants) || !Array.isArray(menuItems) || !billSettings) {
+		throw new Error('ข้อมูลไม่ครบถ้วนหรือผิดรูปแบบ');
+	}
+
+	// นำเข้าข้อมูล
+	saveParticipants(participants);
+	saveMenuItems(menuItems);
+	saveBillSettings(billSettings);
+	savePromptPayInfo(promptPayInfo || {});
+
+	// นำเข้าประวัติถ้ามี
+	if (history && Array.isArray(history)) {
+		if (typeof window !== 'undefined') {
+			localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(history));
+		}
 	}
 }

@@ -42,22 +42,26 @@ export function generateDetailedReport(
 		report += `      ผู้สั่ง: ${participantNames} (${item.participants.length} คน)\n`;
 		report += `      ราคาต่อคน: ${formatPrice(pricePerPerson)}\n\n`;
 	});
-
 	// การตั้งค่า
 	report += '⚙️ การตั้งค่าบิล:\n';
 	report += `   VAT: ${settings.vatPercentage}%\n`;
 	report += `   ค่าบริการ: ${settings.serviceChargePercentage}%\n`;
-	if (settings.discount) {
-		const discountParticipantNames = settings.discount.participants
-			.map(id => participants.find(p => p.id === id)?.name)
-			.filter(Boolean)
-			.join(', ');
 
-		if (settings.discount.type === 'percentage') {
-			report += `   ส่วนลด: ${settings.discount.value}% สำหรับ ${discountParticipantNames}\n`;
-		} else {
-			report += `   ส่วนลด: ${formatPrice(settings.discount.value)} สำหรับ ${discountParticipantNames}\n`;
-		}
+	// แสดงรายละเอียดส่วนลดแต่ละรายการ
+	if (settings.discounts.length > 0) {
+		report += '   ส่วนลด:\n';
+		settings.discounts.forEach(discount => {
+			const discountParticipantNames = discount.participants
+				.map(id => participants.find(p => p.id === id)?.name)
+				.filter(Boolean)
+				.join(', ');
+
+			if (discount.type === 'percentage') {
+				report += `     - "${discount.name}": ${discount.value}% สำหรับ ${discountParticipantNames}\n`;
+			} else {
+				report += `     - "${discount.name}": ${formatPrice(discount.value)} สำหรับ ${discountParticipantNames}\n`;
+			}
+		});
 	}
 	report += '\n';
 
@@ -73,14 +77,27 @@ export function generateDetailedReport(
 		}
 		report += `      รวมที่ต้องจ่าย: ${formatPrice(person.grandTotal)}\n\n`;
 	});
-
 	// สรุปรวม
 	report += '📊 สรุปยอดรวมทั้งหมด:\n';
 	report += `   ยอดอาหาร: ${formatPrice(totalBill.subtotal)}\n`;
 	report += `   ค่าบริการ: ${formatPrice(totalBill.serviceCharge)}\n`;
 	report += `   VAT: ${formatPrice(totalBill.vat)}\n`;
+
+	// แสดงรายละเอียดส่วนลดแต่ละรายการ
+	if (settings.discounts.length > 0) {
+		settings.discounts.forEach(discount => {
+			const discountText = discount.type === 'percentage'
+				? `${discount.value}%`
+				: formatPrice(discount.value);
+			const discountAmount = discount.type === 'fixed'
+				? discount.value
+				: ((totalBill.subtotal + totalBill.serviceCharge + totalBill.vat) * discount.value) / 100;
+			report += `   ส่วนลด "${discount.name}" (${discountText}): -${formatPrice(discountAmount)}\n`;
+		});
+	}
+
 	if (totalBill.totalDiscount > 0) {
-		report += `   ส่วนลด: -${formatPrice(totalBill.totalDiscount)}\n`;
+		report += `   ส่วนลดรวม: -${formatPrice(totalBill.totalDiscount)}\n`;
 	}
 	report += `   ยอดรวมสุทธิ: ${formatPrice(totalBill.grandTotal)}\n\n`;
 
@@ -224,9 +241,10 @@ export function exportHistoryCSV(history: HistoryEntry[]): void {
 	let csv = 'ชื่อบิล,วันที่,จำนวนคน,รายการอาหาร,ยอดรวม,VAT(%),ค่าบริการ(%),ส่วนลด\n';
 
 	history.forEach(entry => {
-		const discount = entry.billSettings.discount;
-		const discountText = discount
-			? (discount.type === 'percentage' ? `${discount.value}%` : `${discount.value} บาท`)
+		const discountText = entry.billSettings.discounts.length > 0
+			? entry.billSettings.discounts.map(d =>
+				`${d.name}(${d.type === 'percentage' ? `${d.value}%` : `${d.value} บาท`})`
+			).join(', ')
 			: 'ไม่มี';
 
 		csv += `"${entry.name}",`;
@@ -292,15 +310,16 @@ export function generateHistoryReport(history: HistoryEntry[]): string {
 		report += `   📅 วันที่: ${entry.createdAt.toLocaleString('th-TH')}\n`;
 		report += `   👥 ผู้เข้าร่วม: ${entry.participants.length} คน (${entry.participants.map(p => p.name).join(', ')})\n`;
 		report += `   🍽️ รายการอาหาร: ${entry.menuItems.length} รายการ\n`;
-		report += `   💰 ยอดรวม: ${formatPrice(entry.totalAmount)}\n`;
-		report += `   ⚙️ การตั้งค่า: VAT ${entry.billSettings.vatPercentage}%, ค่าบริการ ${entry.billSettings.serviceChargePercentage}%\n`;
+		report += `   💰 ยอดรวม: ${formatPrice(entry.totalAmount)}\n`;		report += `   ⚙️ การตั้งค่า: VAT ${entry.billSettings.vatPercentage}%, ค่าบริการ ${entry.billSettings.serviceChargePercentage}%\n`;
 
-		if (entry.billSettings.discount) {
-			const discount = entry.billSettings.discount;
-			const discountText = discount.type === 'percentage'
-				? `${discount.value}%`
-				: formatPrice(discount.value);
-			report += `   🎁 ส่วนลด: ${discountText}\n`;
+		if (entry.billSettings.discounts.length > 0) {
+			const discountsText = entry.billSettings.discounts.map(discount => {
+				const discountValue = discount.type === 'percentage'
+					? `${discount.value}%`
+					: formatPrice(discount.value);
+				return `"${discount.name}" (${discountValue})`;
+			}).join(', ');
+			report += `   🎁 ส่วนลด: ${discountsText}\n`;
 		}
 
 		// สรุปการจ่ายแต่ละคน
