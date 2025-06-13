@@ -390,39 +390,43 @@
 							</div>
 						{/if}
 					{/each}
-				</div>
-
-				<!-- แสดง QR Code หรือข้อมูลธนาคาร ใน Dialog -->
+				</div>				<!-- แสดง QR Code หรือข้อมูลธนาคาร ใน Dialog -->
 				{#if qrCodePayload}
 					<Dialog open={!!qrCodePayload} onOpenChange={(open) => !open && (qrCodePayload = '')}>
-						<DialogContent class="w-[95vw] max-w-md mx-auto">
-							<DialogHeader>
-								<DialogTitle class="text-base">
-									{qrCodePayload === 'bank-details' ? 'ข้อมูลการโอนเงิน' : 'QR Code'}สำหรับ
-									{billSummary.find((p) => p.participantId === selectedPersonId)?.participantName}
+						<DialogContent class="w-[95vw] max-w-sm mx-auto p-0 overflow-hidden">
+							<DialogHeader class="px-4 pt-4 pb-2">
+								<DialogTitle class="text-base text-center">
+									{qrCodePayload === 'bank-details' ? '💳 ข้อมูลการโอนเงิน' : '📱 QR Code PromptPay'}
 								</DialogTitle>
+								<div class="text-center text-sm text-muted-foreground">
+									สำหรับ {billSummary.find((p) => p.participantId === selectedPersonId)?.participantName}
+								</div>
 							</DialogHeader>
-							<div class="space-y-4">
+							<div class="px-4 pb-4">
 								{#if qrCodePayload === 'bank-details'}
 									<!-- Bank Details -->
 									<div class="space-y-4">
-										<div class="text-center">
-											<Building2 class="mx-auto mb-4 h-16 w-16 text-muted-foreground" />
-											<div class="text-lg font-medium mb-2">
+										<div class="text-center py-4 bg-gradient-to-b from-blue-50 to-white rounded-lg">
+											<Building2 class="mx-auto mb-3 h-12 w-12 text-blue-600" />
+											<div class="text-2xl font-bold text-blue-900 mb-1">
 												{formatPrice(selectedPersonAmount)}
 											</div>
-										</div>										<div class="space-y-3 rounded-lg border p-4">
-											<div class="flex justify-between items-center">
-												<span class="text-muted-foreground">ธนาคาร:</span>
-												<span class="font-medium">{$promptPayInfo.bankName}</span>
+											<div class="text-sm text-blue-600">จำนวนที่ต้องโอน</div>
+										</div>
+
+										<div class="space-y-3 rounded-xl border bg-gradient-to-br from-gray-50 to-white p-4 shadow-sm">
+											<div class="flex justify-between items-center py-2 border-b border-gray-100">
+												<span class="text-sm text-gray-600">🏦 ธนาคาร</span>
+												<span class="font-semibold text-gray-900">{$promptPayInfo.bankName}</span>
 											</div>
-											<div class="flex justify-between items-center">
-												<span class="text-muted-foreground">ชื่อบัญชี:</span>
-												<span class="font-medium">{$promptPayInfo.accountName}</span>
-											</div>											<div class="flex justify-between items-center">
-												<span class="text-muted-foreground">เลขที่บัญชี:</span>
+											<div class="flex justify-between items-center py-2 border-b border-gray-100">
+												<span class="text-sm text-gray-600">👤 ชื่อบัญชี</span>
+												<span class="font-semibold text-gray-900 text-right max-w-[180px] truncate">{$promptPayInfo.accountName}</span>
+											</div>
+											<div class="flex justify-between items-center py-2 border-b border-gray-100">
+												<span class="text-sm text-gray-600">🔢 เลขที่บัญชี</span>
 												<div class="flex items-center gap-2">
-													<span class="font-medium">{$promptPayInfo.accountNumber}</span>
+													<span class="font-mono font-semibold text-gray-900 text-sm">{$promptPayInfo.accountNumber}</span>
 													<Tooltip text="คัดลอกเลขที่บัญชี">
 														<Button
 															size="sm"
@@ -431,21 +435,23 @@
 																navigator.clipboard.writeText($promptPayInfo.accountNumber || '');
 																addToast('คัดลอกเลขบัญชีสำเร็จ', 'success');
 															}}
+															class="h-8 w-8 p-0 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600"
 														>
 															<Copy class="h-3 w-3" />
 														</Button>
 													</Tooltip>
 												</div>
 											</div>
-											<div class="flex justify-between items-center">
-												<span class="text-muted-foreground">จำนวนเงิน:</span>
+											<div class="flex justify-between items-center py-2">
+												<span class="text-sm text-gray-600">💰 จำนวนเงิน</span>
 												<div class="flex items-center gap-2">
-													<span class="font-medium">{selectedPersonAmount.toFixed(2)} บาท</span>
+													<span class="font-bold text-lg text-green-600">{selectedPersonAmount.toFixed(2)} ฿</span>
 													<Tooltip text="คัดลอกจำนวนเงิน">
 														<Button
 															size="sm"
 															variant="ghost"
 															onclick={() => copyAmount(selectedPersonAmount)}
+															class="h-8 w-8 p-0 rounded-full bg-green-100 hover:bg-green-200 text-green-600"
 														>
 															<Copy class="h-3 w-3" />
 														</Button>
@@ -454,63 +460,95 @@
 											</div>
 										</div>
 
-										<div class="flex justify-center gap-2">
-											<Button variant="outline" onclick={() => copyAmount(selectedPersonAmount)}>
-												<Copy class="h-4 w-4" />
+										<div class="flex flex-col gap-2">
+											<Button
+												variant="outline"
+												onclick={() => copyAmount(selectedPersonAmount)}
+												class="w-full bg-green-50 border-green-200 hover:bg-green-100 text-green-700"
+											>
+												<Copy class="h-4 w-4 mr-2" />
 												คัดลอกจำนวนเงิน
 											</Button>
-											<Button onclick={() => (qrCodePayload = '')}>ปิด</Button>
+											<Button
+												onclick={() => (qrCodePayload = '')}
+												class="w-full"
+											>
+												เสร็จสิ้น
+											</Button>
 										</div>
 									</div>
 								{:else}
 									<!-- QR Code -->
-									<div class="flex justify-center">
-										<div class="relative rounded-lg border bg-white p-4">
-											<svg
-												use:svgQR={{
-													data: qrCodePayload
-												}}
-												width="200"
-												height="200"
-												class="flex items-center justify-center"
-												data-qr-svg
-											></svg>
-											<!-- Thai QR Logo overlay -->
-											<div
-												class="pointer-events-none absolute inset-0 flex items-center justify-center"
-											>
-												<div class="bg-white rounded-lg p-2">
-													<img src={ThaiQRLogo} alt="Thai QR Logo" class="w-15" />
+									<div class="space-y-4">
+										<!-- QR Code Container -->
+										<div class="flex justify-center">
+											<div class="relative rounded-2xl bg-gradient-to-br from-white to-gray-50 p-6 shadow-lg border border-gray-200">
+												<!-- QR Code -->
+												<svg
+													use:svgQR={{
+														data: qrCodePayload
+													}}
+													width="220"
+													height="220"
+													class="rounded-xl shadow-sm"
+													data-qr-svg
+												></svg>
+												<!-- Thai QR Logo overlay -->
+												<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+													<div class="bg-white rounded-xl p-2 shadow-md border border-gray-100">
+														<img src={ThaiQRLogo} alt="Thai QR Logo" class="w-16 h-auto" />
+													</div>
 												</div>
 											</div>
 										</div>
-									</div>
 
-									<!-- ข้อมูลการโอน -->
-									<div class="space-y-2 text-center">
-										<div class="text-lg font-medium">
-											{formatPrice(selectedPersonAmount)}
-										</div>
-										{#if $promptPayInfo.phoneNumber}
-											<div class="text-muted-foreground text-sm">
-												โอนไปยัง: {$promptPayInfo.phoneNumber}
+										<!-- Payment Info -->
+										<div class="text-center space-y-3 py-4 bg-gradient-to-b from-blue-50 to-white rounded-xl">
+											<div class="text-3xl font-bold text-blue-900">
+												{formatPrice(selectedPersonAmount)}
 											</div>
-										{/if}
-									</div>									<!-- ปุ่มคัดลอกจำนวนเงิน -->
-									<div class="flex justify-center gap-2">
-										<Tooltip text="คัดลอกจำนวนเงินที่ต้องโอน">
-											<Button variant="outline" onclick={() => copyAmount(selectedPersonAmount)}>
-												<Copy class="h-4 w-4" />
-												คัดลอกจำนวนเงิน
+											{#if $promptPayInfo.phoneNumber}
+												<div class="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full">
+													<Smartphone class="h-4 w-4 text-blue-600" />
+													<span class="text-sm font-medium text-blue-700">
+														{$promptPayInfo.phoneNumber}
+													</span>
+												</div>
+											{/if}
+											<div class="text-xs text-blue-600">
+												แสกน QR Code เพื่อโอนเงินผ่าน PromptPay
+											</div>
+										</div>
+
+										<!-- Action Buttons -->
+										<div class="flex flex-col gap-2">
+											<Tooltip text="คัดลอกจำนวนเงินที่ต้องโอน">
+												<Button
+													variant="outline"
+													onclick={() => copyAmount(selectedPersonAmount)}
+													class="w-full bg-green-50 border-green-200 hover:bg-green-100 text-green-700"
+												>
+													<Copy class="h-4 w-4 mr-2" />
+													คัดลอกจำนวนเงิน
+												</Button>
+											</Tooltip>
+											<Tooltip text="ดาวน์โหลด QR Code เป็นรูปภาพ">
+												<Button
+													variant="outline"
+													onclick={downloadQRCode}
+													class="w-full bg-blue-50 border-blue-200 hover:bg-blue-100 text-blue-700"
+												>
+													<Download class="h-4 w-4 mr-2" />
+													ดาวน์โหลด QR Code
+												</Button>
+											</Tooltip>
+											<Button
+												onclick={() => (qrCodePayload = '')}
+												class="w-full"
+											>
+												เสร็จสิ้น
 											</Button>
-										</Tooltip>
-										<Tooltip text="ดาวน์โหลด QR Code เป็นรูปภาพ">
-											<Button variant="outline" onclick={downloadQRCode}>
-												<Download class="h-4 w-4" />
-												ดาวน์โหลด QR
-											</Button>
-										</Tooltip>
-										<Button onclick={() => (qrCodePayload = '')}>ปิด</Button>
+										</div>
 									</div>
 								{/if}
 							</div>
