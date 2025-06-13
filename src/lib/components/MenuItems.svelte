@@ -76,6 +76,16 @@
 		}
 	}
 
+	function selectAllParticipants() {
+		if (formData.selectedParticipants.length === $participants.length) {
+			// If all are selected, deselect all
+			formData.selectedParticipants = [];
+		} else {
+			// Select all participants
+			formData.selectedParticipants = $participants.map(p => p.id);
+		}
+	}
+
 	function getParticipantNames(participantIds: string[]) {
 		return participantIds
 			.map(id => $participants.find(p => p.id === id)?.name)
@@ -136,15 +146,28 @@
 								bind:value={formData.price}
 								placeholder="0.00"
 							/>
-						</div>
-
-						<!-- เลือกผู้สั่ง -->
+						</div>						<!-- เลือกผู้สั่ง -->
 						<div class="space-y-2">
-							<Label>ผู้ที่สั่งเมนูนี้</Label>
+							<div class="flex items-baseline justify-between">
+								<Label>ผู้ที่สั่งเมนูนี้</Label>
+								{#if $participants.length > 0}
+									<div class="flex items-center space-x-2">
+										<Checkbox
+											id="select-all"
+											checked={formData.selectedParticipants.length === $participants.length}
+											onCheckedChange={selectAllParticipants}
+										/>
+										<Label for="select-all" class="text-xs cursor-pointer">
+											เลือกทั้งหมด
+										</Label>
+									</div>
+								{/if}
+							</div>
 							{#if $participants.length > 0}
 								<div class="grid gap-2 max-h-40 overflow-y-auto">
 									{#each $participants as participant (participant.id)}
-										<div class="flex items-center space-x-2">											<Checkbox
+										<div class="flex items-center space-x-2">
+											<Checkbox
 												id={participant.id}
 												checked={formData.selectedParticipants.includes(participant.id)}
 												onCheckedChange={() => toggleParticipant(participant.id)}
