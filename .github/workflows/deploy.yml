@@ -31,3 +31,4 @@ jobs:
           source: "build/*"
           target: "/home/${{ secrets.SSH_USERNAME }}/han-gun/"
           overwrite: true
+          strip_components: 1
