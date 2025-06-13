@@ -155,7 +155,7 @@ src/
 
 ## 📄 License
 
-MIT License - ใช้งานได้อย่างอิสระ
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## 🔄 Update History
 

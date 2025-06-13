@@ -1,7 +1,10 @@
 {
-	"name": "sveltekit-test",
+	"name": "han-gun",
+	"description": "Thai Bill Splitting Web App - แอปแบ่งค่าอาหารสำหรับกลุ่มเพื่อน",
+	"version": "2.0.0",
 	"private": true,
-	"version": "0.0.1",
+	"license": "Apache-2.0",
+	"author": "Nieb Anupat",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
